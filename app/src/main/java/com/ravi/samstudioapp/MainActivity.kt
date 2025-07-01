@@ -83,15 +83,12 @@ import androidx.room.Room
 import com.ravi.samstudioapp.data.AppDatabase
 import com.ravi.samstudioapp.domain.model.BankTransaction
 import androidx.compose.material3.CircularProgressIndicator
+import android.content.SharedPreferences
 
-// Global variable to hold the current date range (start and end millis)
-var globalDateRange by mutableStateOf<Pair<Long?, Long?>?>(null)
-
-// Global variable for the current date range mode
+// Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
     DAILY(1), WEEKLY(7), MONTHLY(30)
 }
-var globalDateRangeMode by mutableStateOf(DateRangeMode.DAILY)
 
 // Define a single source of truth for categories
 val categories = listOf(
@@ -106,19 +103,16 @@ class MainActivity : ComponentActivity() {
     private val _transactions = mutableStateOf<List<ParsedSmsTransaction>>(emptyList())
     val transactions: List<ParsedSmsTransaction> get() = _transactions.value
 
+    private lateinit var prefs: SharedPreferences
+    private lateinit var requestSmsPermissionLauncher: androidx.activity.result.ActivityResultLauncher<String>
+
     @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val db = Room.databaseBuilder(
-            applicationContext,
-            AppDatabase::class.java,
-            "app_db"
-        ).build()
-        val dao = db.bankTransactionDao()
-
-        // Permission launcher
-        val requestSmsPermissionLauncher =
+        prefs = getSharedPreferences("samstudio_prefs", MODE_PRIVATE)
+        // Register permission launcher BEFORE setContent
+        requestSmsPermissionLauncher =
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
                 if (isGranted) {
                     logFederalBankMessages()
@@ -126,7 +120,6 @@ class MainActivity : ComponentActivity() {
                     Toast.makeText(this, "Permission denied to read messages", Toast.LENGTH_SHORT).show()
                 }
             }
-
         setContent {
             SamStudioAppTheme {
                 val coroutineScope = rememberCoroutineScope()
@@ -138,6 +131,33 @@ class MainActivity : ComponentActivity() {
                 var editId by remember { mutableStateOf<Int?>(null) }
                 var editAmount by remember { mutableStateOf("") }
                 var editType by remember { mutableStateOf("") }
+                // Local Compose state for date range and mode
+                var mode by remember { mutableStateOf(DateRangeMode.DAILY) }
+                var currentRange by remember {
+                    val cal = Calendar.getInstance()
+                    val end = cal.timeInMillis
+                    cal.add(Calendar.DAY_OF_YEAR, -(mode.days - 1))
+                    val start = cal.timeInMillis
+                    mutableStateOf<Pair<Long, Long>>(start to end)
+                }
+                var prevRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+                // Load from prefs on first launch
+                LaunchedEffect(Unit) {
+                    val savedStart = prefs.getLong("date_range_start", -1L)
+                    val savedEnd = prefs.getLong("date_range_end", -1L)
+                    val savedMode = prefs.getString("date_range_mode", null)
+                    if (savedStart > 0 && savedEnd > 0 && savedMode != null) {
+                        mode = DateRangeMode.valueOf(savedMode)
+                        currentRange = savedStart to savedEnd
+                    }
+                }
+                val db = Room.databaseBuilder(
+                    applicationContext,
+                    AppDatabase::class.java,
+                    "app_db"
+                ).build()
+                val dao = db.bankTransactionDao()
+
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
@@ -147,8 +167,54 @@ class MainActivity : ComponentActivity() {
                         composable("main") {
                             Column {
                                 CustomToolbarWithDateRange(
-                                    title = "SamStudio",
-                                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 12.dp),
+                                    currentRange = currentRange,
+                                    mode = mode,
+                                    onPrevClick = {
+                                        prevRange = currentRange
+                                        val (start, end) = currentRange
+                                        val newEnd = start - 1
+                                        val newStart = newEnd - (mode.days - 1) * 24 * 60 * 60 * 1000L
+                                        currentRange = newStart to newEnd
+                                        prefs.edit()
+                                            .putLong("date_range_start", newStart)
+                                            .putLong("date_range_end", newEnd)
+                                            .putString("date_range_mode", mode.name)
+                                            .apply()
+                                    },
+                                    onNextClick = {
+                                        prevRange = currentRange
+                                        val (start, end) = currentRange
+                                        val newStart = end + 1
+                                        val newEnd = newStart + (mode.days - 1) * 24 * 60 * 60 * 1000L
+                                        currentRange = newStart to newEnd
+                                        prefs.edit()
+                                            .putLong("date_range_start", newStart)
+                                            .putLong("date_range_end", newEnd)
+                                            .putString("date_range_mode", mode.name)
+                                            .apply()
+                                    },
+                                    onModeChange = { newMode ->
+                                        mode = newMode
+                                        val cal = Calendar.getInstance()
+                                        val end = cal.timeInMillis
+                                        cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                                        val start = cal.timeInMillis
+                                        currentRange = start to end
+                                        prefs.edit()
+                                            .putLong("date_range_start", start)
+                                            .putLong("date_range_end", end)
+                                            .putString("date_range_mode", newMode.name)
+                                            .apply()
+                                    },
+                                    onDatePickerChange = { start, end ->
+                                        prevRange = currentRange
+                                        currentRange = start to end
+                                        prefs.edit()
+                                            .putLong("date_range_start", start)
+                                            .putLong("date_range_end", end)
+                                            .putString("date_range_mode", mode.name)
+                                            .apply()
+                                    },
                                     onRefreshClick = {
                                         if (!isLoading) {
                                             when (PackageManager.PERMISSION_GRANTED) {
@@ -215,8 +281,9 @@ class MainActivity : ComponentActivity() {
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
                                 // Fetch transactions from Room and map to ExpenseCategory
-                                LaunchedEffect(Unit) {
-                                    roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+                                LaunchedEffect(currentRange) {
+                                    val (start, end) = currentRange
+                                    roomTransactions = withContext(Dispatchers.IO) { dao.getByDateRange(start, end) }
                                 }
                                 val expenseCategories = roomTransactions.groupBy { it.tags.ifBlank { "Other" } }.map { (type, txns) ->
                                     val (icon, color) = categories.find { it.first == type }?.second ?: (Icons.Filled.LocalDrink to ComposeColor(0xFF0288D1))
@@ -404,36 +471,22 @@ fun CustomToolbarWithDateRange(
     onNextClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
     isLoading: Boolean = false,
-    onAddDummyClick: () -> Unit = {}
+    onAddDummyClick: () -> Unit = {},
+    currentRange: Pair<Long, Long>,
+    mode: DateRangeMode,
+    onModeChange: (DateRangeMode) -> Unit,
+    onDatePickerChange: (Long, Long) -> Unit
 ) {
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
     val context = LocalContext.current
-    var mode by remember { mutableStateOf(globalDateRangeMode) }
-
-    // On mode change, update globalDateRange and globalDateRangeMode
-    fun updateRangeForMode(newMode: DateRangeMode) {
-        val cal = Calendar.getInstance()
-        val end = cal.timeInMillis
-        cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-        val start = cal.timeInMillis
-        globalDateRange = Pair(start, end)
-        globalDateRangeMode = newMode
-    }
-
-    // On first composition or mode change, set initial range
-    LaunchedEffect(mode) {
-        updateRangeForMode(mode)
-    }
-
-    // Use globalDateRange if set, otherwise use picker state or default
-    val formattedRange = globalDateRange?.let { (start, end) ->
+    // Use globalDateRangeMode directly
+    val formattedRange = currentRange.let { (start, end) ->
         if (start != null && end != null) {
             val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             "${formatter.format(Date(start))} - ${formatter.format(Date(end))}"
         } else dateRange
     } ?: dateRange
-
     Column(modifier = modifier) {
         // Toolbar Row
         Row(
@@ -456,13 +509,19 @@ fun CustomToolbarWithDateRange(
                 }
                 // Number toggle with circular background
                 IconButton(onClick = {
-                    mode = when (mode) {
+                    val newMode = when (mode) {
                         DateRangeMode.DAILY -> DateRangeMode.WEEKLY
                         DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
                         DateRangeMode.MONTHLY -> DateRangeMode.DAILY
                     }
-                    updateRangeForMode(mode)
-                    Toast.makeText(context, "Range changed to ${mode.days} days", Toast.LENGTH_SHORT).show()
+                    // Update globalDateRangeMode and globalDateRange
+                    onModeChange(newMode)
+                    val cal = Calendar.getInstance()
+                    val end = cal.timeInMillis
+                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                    val start = cal.timeInMillis
+                    onDatePickerChange(start, end)
+                    Toast.makeText(context, "Range changed to ${newMode.days} days", Toast.LENGTH_SHORT).show()
                 }) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -538,14 +597,15 @@ fun CustomToolbarWithDateRange(
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
+        val context =LocalContext.current
         if (showDateRangePicker) {
             DatePickerDialog(
                 onDismissRequest = { showDateRangePicker = false },
                 confirmButton = {
                     TextButton(onClick = {
-                        globalDateRange = Pair(
-                            dateRangePickerState.selectedStartDateMillis,
-                            dateRangePickerState.selectedEndDateMillis
+                        onDatePickerChange(
+                            dateRangePickerState.selectedStartDateMillis ?: -1L,
+                            dateRangePickerState.selectedEndDateMillis ?: -1L
                         )
                         showDateRangePicker = false
                     }) {
@@ -585,7 +645,17 @@ fun GreetingPreview() {
 fun MainScreenPreview() {
     SamStudioAppTheme {
         // Note: DateRangePicker dialog will only show on click in a real device/emulator.
-        CustomToolbarWithDateRange()
+        CustomToolbarWithDateRange(
+            currentRange = 0L to 0L,
+            mode = DateRangeMode.DAILY,
+            onPrevClick = {},
+            onNextClick = {},
+            onModeChange = {},
+            onDatePickerChange = { _, _ -> },
+            onRefreshClick = {},
+            isLoading = false,
+            onAddDummyClick = {}
+        )
     }
 }
 
