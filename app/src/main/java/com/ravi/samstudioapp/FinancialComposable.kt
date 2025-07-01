@@ -34,6 +34,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.FilterChip
 
 // Data model for expense category and subtypes
 data class ExpenseCategory(
@@ -54,13 +57,32 @@ fun FinancialDataComposable(
     expenses: List<ExpenseCategory>,
     modifier: Modifier = Modifier
 ) {
+    var selectedFilter by remember { mutableStateOf("All") }
+    val filterOptions = listOf("All") + expenses.map { it.name }
     Column(modifier = modifier.padding(16.dp)) {
         Text(
             text = "Expenses",
             style = MaterialTheme.typography.titleLarge.copy(fontSize = 26.sp, fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(bottom = 16.dp).align(Alignment.CenterHorizontally)
         )
-        expenses.forEach { category ->
+        // Chip filter row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            filterOptions.forEach { filter ->
+                androidx.compose.material3.FilterChip(
+                    selected = selectedFilter == filter,
+                    onClick = { selectedFilter = filter },
+                    label = { Text(filter) }
+                )
+            }
+        }
+        val filteredExpenses = if (selectedFilter == "All") expenses else expenses.filter { it.name == selectedFilter }
+        filteredExpenses.forEach { category ->
             ExpandableExpenseCategory(category)
             Spacer(modifier = Modifier.height(16.dp))
         }

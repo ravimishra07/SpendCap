@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -91,7 +92,7 @@ enum class DateRangeMode(val days: Int) {
 var globalDateRangeMode by mutableStateOf(DateRangeMode.DAILY)
 
 class MainActivity : ComponentActivity() {
-    // Add a state to hold parsed transactions
+    // Add a state to hold parsed transactions (for SMS parsing only)
     private val _transactions = mutableStateOf<List<ParsedSmsTransaction>>(emptyList())
     val transactions: List<ParsedSmsTransaction> get() = _transactions.value
 
@@ -121,6 +122,7 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 var smsTransactions by remember { mutableStateOf<List<ParsedSmsTransaction>>(emptyList()) }
                 var isLoading by remember { mutableStateOf(false) }
+                var roomTransactions by remember { mutableStateOf<List<BankTransaction>>(emptyList()) }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
@@ -176,7 +178,20 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
                                     },
-                                    isLoading = isLoading
+                                    isLoading = isLoading,
+                                    onAddDummyClick = {
+                                        coroutineScope.launch {
+                                            val dummyList = listOf(
+                                                BankTransaction(amount = 100.0, bankName = "HDFC", tags = "Food", messageTime = System.currentTimeMillis()),
+                                                BankTransaction(amount = 200.0, bankName = "ICICI", tags = "Travel", messageTime = System.currentTimeMillis()),
+                                                BankTransaction(amount = 50.0, bankName = "SBI", tags = "Cigarette", messageTime = System.currentTimeMillis()),
+                                                BankTransaction(amount = 80.0, bankName = "Axis", tags = "Food", messageTime = System.currentTimeMillis()),
+                                                BankTransaction(amount = 120.0, bankName = "Kotak", tags = "Other", messageTime = System.currentTimeMillis())
+                                            )
+                                            dummyList.forEach { dao.insert(it) }
+                                            roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+                                        }
+                                    }
                                 )
                                 if (isLoading) {
                                     Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
@@ -184,51 +199,32 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                                 Spacer(modifier = Modifier.height(8.dp))
-                                val sampleData = listOf(
+                                // Fetch transactions from Room and map to ExpenseCategory
+                                LaunchedEffect(Unit) {
+                                    roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+                                }
+                                val expenseCategories = roomTransactions.groupBy { it.tags.ifBlank { "Other" } }.map { (type, txns) ->
+                                    val icon = when (type) {
+                                        "Food" -> Icons.Filled.Fastfood
+                                        "Travel" -> Icons.Filled.DirectionsCar
+                                        "Cigarette" -> Icons.Filled.LocalCafe
+                                        else -> Icons.Filled.LocalDrink
+                                    }
+                                    val color = when (type) {
+                                        "Food" -> ComposeColor(0xFFEF6C00)
+                                        "Travel" -> ComposeColor(0xFF388E3C)
+                                        "Cigarette" -> ComposeColor(0xFF6D4C41)
+                                        else -> ComposeColor(0xFF0288D1)
+                                    }
                                     ExpenseCategory(
-                                        name = "Food",
-                                        total = 1200.0,
-                                        icon = Icons.Filled.Fastfood,
-                                        iconColor = ComposeColor(0xFFEF6C00),
-                                        subTypes = listOf(
-                                            ExpenseSubType("Breakfast", 300.0),
-                                            ExpenseSubType("Lunch", 500.0),
-                                            ExpenseSubType("Dinner", 400.0)
-                                        )
-                                    ),
-                                    ExpenseCategory(
-                                        name = "Cigarettes",
-                                        total = 600.0,
-                                        icon = Icons.Filled.LocalCafe,
-                                        iconColor = ComposeColor(0xFF6D4C41),
-                                        subTypes = listOf(
-                                            ExpenseSubType("Classic", 400.0),
-                                            ExpenseSubType("Gold Flake", 200.0)
-                                        )
-                                    ),
-                                    ExpenseCategory(
-                                        name = "Cold Drinks",
-                                        total = 350.0,
-                                        icon = Icons.Filled.LocalDrink,
-                                        iconColor = ComposeColor(0xFF0288D1),
-                                        subTypes = listOf(
-                                            ExpenseSubType("Coke", 200.0),
-                                            ExpenseSubType("Pepsi", 150.0)
-                                        )
-                                    ),
-                                    ExpenseCategory(
-                                        name = "Travel",
-                                        total = 900.0,
-                                        icon = Icons.Filled.DirectionsCar,
-                                        iconColor = ComposeColor(0xFF388E3C),
-                                        subTypes = listOf(
-                                            ExpenseSubType("Bus", 300.0),
-                                            ExpenseSubType("Auto", 400.0),
-                                            ExpenseSubType("Cab", 200.0)
-                                        )
+                                        name = type,
+                                        total = txns.sumOf { it.amount },
+                                        icon = icon,
+                                        iconColor = color,
+                                        subTypes = txns.map { ExpenseSubType("Txn ${it.id}", it.amount) }
                                     )
-                                )
-                                FinancialDataComposable(expenses = sampleData)
+                                }
+                                FinancialDataComposable(expenses = expenseCategories)
                             }
                         }
                         composable("smsList") {
@@ -328,7 +324,8 @@ fun CustomToolbarWithDateRange(
     onPrevClick: () -> Unit = {},
     onNextClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
-    isLoading: Boolean = false
+    isLoading: Boolean = false,
+    onAddDummyClick: () -> Unit = {}
 ) {
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
@@ -374,6 +371,9 @@ fun CustomToolbarWithDateRange(
                 }
                 IconButton(onClick = onRefreshClick, enabled = !isLoading) {
                     Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                }
+                IconButton(onClick = onAddDummyClick) {
+                    Icon(Icons.Filled.Add, contentDescription = "Add Dummy Data")
                 }
                 // Number toggle with circular background
                 IconButton(onClick = {
