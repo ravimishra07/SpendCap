@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.ravi.samstudioapp.domain.model.BankTransaction
 
 @Dao
@@ -16,4 +17,7 @@ interface BankTransactionDao {
 
     @Query("SELECT * FROM bank_transactions WHERE messageTime BETWEEN :start AND :end ORDER BY messageTime DESC")
     suspend fun getByDateRange(start: Long, end: Long): List<BankTransaction>
+
+    @Update
+    suspend fun update(transaction: BankTransaction)
 } 

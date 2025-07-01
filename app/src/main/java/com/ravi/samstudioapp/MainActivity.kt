@@ -68,6 +68,7 @@ import android.content.pm.PackageManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.provider.Telephony
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -77,6 +78,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.room.Room
 import com.ravi.samstudioapp.data.AppDatabase
 import com.ravi.samstudioapp.domain.model.BankTransaction
@@ -91,11 +93,20 @@ enum class DateRangeMode(val days: Int) {
 }
 var globalDateRangeMode by mutableStateOf(DateRangeMode.DAILY)
 
+// Define a single source of truth for categories
+val categories = listOf(
+    "Food" to (Icons.Filled.Fastfood to ComposeColor(0xFFEF6C00)),
+    "Cigarette" to (Icons.Filled.LocalCafe to ComposeColor(0xFF6D4C41)),
+    "Travel" to (Icons.Filled.DirectionsCar to ComposeColor(0xFF388E3C)),
+    "Other" to (Icons.Filled.LocalDrink to ComposeColor(0xFF0288D1))
+)
+
 class MainActivity : ComponentActivity() {
     // Add a state to hold parsed transactions (for SMS parsing only)
     private val _transactions = mutableStateOf<List<ParsedSmsTransaction>>(emptyList())
     val transactions: List<ParsedSmsTransaction> get() = _transactions.value
 
+    @OptIn(ExperimentalMaterial3Api::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -123,6 +134,10 @@ class MainActivity : ComponentActivity() {
                 var smsTransactions by remember { mutableStateOf<List<ParsedSmsTransaction>>(emptyList()) }
                 var isLoading by remember { mutableStateOf(false) }
                 var roomTransactions by remember { mutableStateOf<List<BankTransaction>>(emptyList()) }
+                var showEditSheet by remember { mutableStateOf(false) }
+                var editId by remember { mutableStateOf<Int?>(null) }
+                var editAmount by remember { mutableStateOf("") }
+                var editType by remember { mutableStateOf("") }
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     NavHost(
                         navController = navController,
@@ -204,27 +219,24 @@ class MainActivity : ComponentActivity() {
                                     roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
                                 }
                                 val expenseCategories = roomTransactions.groupBy { it.tags.ifBlank { "Other" } }.map { (type, txns) ->
-                                    val icon = when (type) {
-                                        "Food" -> Icons.Filled.Fastfood
-                                        "Travel" -> Icons.Filled.DirectionsCar
-                                        "Cigarette" -> Icons.Filled.LocalCafe
-                                        else -> Icons.Filled.LocalDrink
-                                    }
-                                    val color = when (type) {
-                                        "Food" -> ComposeColor(0xFFEF6C00)
-                                        "Travel" -> ComposeColor(0xFF388E3C)
-                                        "Cigarette" -> ComposeColor(0xFF6D4C41)
-                                        else -> ComposeColor(0xFF0288D1)
-                                    }
+                                    val (icon, color) = categories.find { it.first == type }?.second ?: (Icons.Filled.LocalDrink to ComposeColor(0xFF0288D1))
                                     ExpenseCategory(
                                         name = type,
                                         total = txns.sumOf { it.amount },
                                         icon = icon,
                                         iconColor = color,
-                                        subTypes = txns.map { ExpenseSubType("Txn ${it.id}", it.amount) }
+                                        subTypes = txns.map { ExpenseSubType(it.id, "Txn ${it.id}", it.amount) }
                                     )
                                 }
-                                FinancialDataComposable(expenses = expenseCategories)
+                                FinancialDataComposable(
+                                    expenses = expenseCategories,
+                                    onEditClick = { categoryName, subType ->
+                                        editId = subType.id
+                                        editAmount = subType.amount.toString()
+                                        editType = categoryName
+                                        showEditSheet = true
+                                    }
+                                )
                             }
                         }
                         composable("smsList") {
@@ -234,6 +246,73 @@ class MainActivity : ComponentActivity() {
                                 }
                             } else {
                                 SmsTransactionsByDateScreen(smsTransactions, onBack = { navController.popBackStack() })
+                            }
+                        }
+                    }
+                }
+                // Show bottom sheet for editing (must be inside setContent)
+                if (showEditSheet && editId != null) {
+                    androidx.compose.material3.ModalBottomSheet(
+                        onDismissRequest = { showEditSheet = false }
+                    ) {
+                        Column(Modifier.padding(24.dp)) {
+                            Text("Edit Transaction", style = MaterialTheme.typography.titleLarge)
+                            Spacer(Modifier.height(16.dp))
+                            androidx.compose.material3.OutlinedTextField(
+                                value = editAmount,
+                                onValueChange = { editAmount = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                                label = { Text("Amount") },
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Number),
+                                singleLine = true
+                            )
+                            Spacer(Modifier.height(12.dp))
+                            val typeOptions = categories.map { it.first }
+                            var expanded by remember { mutableStateOf(false) }
+                            androidx.compose.material3.ExposedDropdownMenuBox(
+                                expanded = expanded,
+                                onExpandedChange = { expanded = !expanded }
+                            ) {
+                                androidx.compose.material3.OutlinedTextField(
+                                    value = editType,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Type") },
+                                    trailingIcon = { Icons.Filled.KeyboardArrowDown },
+                                    modifier = Modifier.width(180.dp).menuAnchor().clickable { expanded = true }
+                                )
+                                androidx.compose.material3.DropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    typeOptions.forEach { type ->
+                                        androidx.compose.material3.DropdownMenuItem(
+                                            text = { Text(type) },
+                                            onClick = {
+                                                editType = type
+                                                expanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(16.dp))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                TextButton(onClick = { showEditSheet = false }) { Text("Cancel") }
+                                Spacer(Modifier.width(8.dp))
+                                TextButton(onClick = {
+                                    val amt = editAmount.toDoubleOrNull()
+                                    if (amt != null && editType.isNotBlank() && editId != null) {
+                                        coroutineScope.launch {
+                                            val txn = roomTransactions.find { it.id == editId }
+                                            if (txn != null) {
+                                                val updatedTxn = txn.copy(amount = amt, tags = editType)
+                                                dao.update(updatedTxn)
+                                                roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+                                            }
+                                            showEditSheet = false
+                                        }
+                                    }
+                                }) { Text("Save") }
                             }
                         }
                     }

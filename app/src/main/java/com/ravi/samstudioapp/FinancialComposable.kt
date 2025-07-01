@@ -37,6 +37,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.IconButton
 
 // Data model for expense category and subtypes
 data class ExpenseCategory(
@@ -48,6 +50,7 @@ data class ExpenseCategory(
 )
 
 data class ExpenseSubType(
+    val id: Int,
     val name: String,
     val amount: Double
 )
@@ -55,7 +58,8 @@ data class ExpenseSubType(
 @Composable
 fun FinancialDataComposable(
     expenses: List<ExpenseCategory>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onEditClick: (categoryName: String, subType: ExpenseSubType) -> Unit = { _, _ -> }
 ) {
     var selectedFilter by remember { mutableStateOf("All") }
     val filterOptions = listOf("All") + expenses.map { it.name }
@@ -83,14 +87,14 @@ fun FinancialDataComposable(
         }
         val filteredExpenses = if (selectedFilter == "All") expenses else expenses.filter { it.name == selectedFilter }
         filteredExpenses.forEach { category ->
-            ExpandableExpenseCategory(category)
+            ExpandableExpenseCategory(category, onEditClick)
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-fun ExpandableExpenseCategory(category: ExpenseCategory) {
+fun ExpandableExpenseCategory(category: ExpenseCategory, onEditClick: (String, ExpenseSubType) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     // Neumorphic effect colors
     val backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
@@ -180,10 +184,14 @@ fun ExpandableExpenseCategory(category: ExpenseCategory) {
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 6.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(text = sub.name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium))
                             Text(text = "₹${sub.amount}", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                            IconButton(onClick = { onEditClick(category.name, sub) }) {
+                                Icon(Icons.Filled.Edit, contentDescription = "Edit")
+                            }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
                         Surface(
@@ -208,9 +216,9 @@ fun FinancialDataComposablePreview() {
             icon = Icons.Filled.Fastfood,
             iconColor = Color(0xFFEF6C00),
             subTypes = listOf(
-                ExpenseSubType("Breakfast", 300.0),
-                ExpenseSubType("Lunch", 500.0),
-                ExpenseSubType("Dinner", 400.0)
+                ExpenseSubType(1, "Breakfast", 300.0),
+                ExpenseSubType(2, "Lunch", 500.0),
+                ExpenseSubType(3, "Dinner", 400.0)
             )
         ),
         ExpenseCategory(
@@ -219,8 +227,8 @@ fun FinancialDataComposablePreview() {
             icon = Icons.Filled.LocalCafe,
             iconColor = Color(0xFF6D4C41),
             subTypes = listOf(
-                ExpenseSubType("Classic", 400.0),
-                ExpenseSubType("Gold Flake", 200.0)
+                ExpenseSubType(4, "Classic", 400.0),
+                ExpenseSubType(5, "Gold Flake", 200.0)
             )
         ),
         ExpenseCategory(
@@ -229,8 +237,8 @@ fun FinancialDataComposablePreview() {
             icon = Icons.Filled.LocalDrink,
             iconColor = Color(0xFF0288D1),
             subTypes = listOf(
-                ExpenseSubType("Coke", 200.0),
-                ExpenseSubType("Pepsi", 150.0)
+                ExpenseSubType(6, "Coke", 200.0),
+                ExpenseSubType(7, "Pepsi", 150.0)
             )
         ),
         ExpenseCategory(
@@ -239,9 +247,9 @@ fun FinancialDataComposablePreview() {
             icon = Icons.Filled.DirectionsCar,
             iconColor = Color(0xFF388E3C),
             subTypes = listOf(
-                ExpenseSubType("Bus", 300.0),
-                ExpenseSubType("Auto", 400.0),
-                ExpenseSubType("Cab", 200.0)
+                ExpenseSubType(8, "Bus", 300.0),
+                ExpenseSubType(9, "Auto", 400.0),
+                ExpenseSubType(10, "Cab", 200.0)
             )
         )
     )
