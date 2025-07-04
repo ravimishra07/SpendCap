@@ -51,7 +51,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -78,6 +77,19 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.CornerRadius
 
 // Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
@@ -617,4 +629,112 @@ fun shiftDateRange(
     val cappedStart = if (preventFuture && cappedEnd < newStart) newStart else newStart
 
     return Pair(cappedStart, cappedEnd)
+}
+
+@Composable
+fun SpendBarGraph(
+    transactions: List<BankTransaction>,
+    dateRange: Pair<Long, Long>,
+    mode: DateRangeMode,
+    modifier: Modifier = Modifier,
+    barColor: Color = MaterialTheme.colorScheme.primary,
+    barWidth: Dp = 24.dp,
+    barSpacing: Dp = 16.dp,
+    graphHeight: Dp = 180.dp
+) {
+    val zone = ZoneId.systemDefault()
+    val startDate = Instant.ofEpochMilli(dateRange.first).atZone(zone).toLocalDate()
+    val endDate = Instant.ofEpochMilli(dateRange.second).atZone(zone).toLocalDate()
+    val days = generateSequence(startDate) { it.plusDays(1) }
+        .takeWhile { !it.isAfter(endDate) }
+        .toList()
+    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
+    val txnsByDay = transactions.groupBy {
+        Instant.ofEpochMilli(it.messageTime).atZone(zone).toLocalDate()
+    }
+    val amounts = days.map { day ->
+        txnsByDay[day]?.sumOf { it.amount } ?: 0.0
+    }
+    val maxAmount = (amounts.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
+    val density = LocalDensity.current
+    val barW = with(density) { barWidth.toPx() }
+    val barS = with(density) { barSpacing.toPx() }
+    val graphH = with(density) { graphHeight.toPx() }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Spending (${mode.days} days)",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(graphHeight + 32.dp),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Canvas(modifier = Modifier.fillMaxSize()) {
+                val totalBars = days.size
+                val totalWidth = totalBars * barW + (totalBars - 1) * barS
+                val startX = (size.width - totalWidth) / 2f
+                for (i in days.indices) {
+                    val amount = amounts[i]
+                    val barHeight = (amount / maxAmount * graphH).toFloat()
+                    val x = startX + i * (barW + barS)
+                    val y = size.height - barHeight - 24.dp.toPx()
+                    drawRoundRect(
+                        color = barColor,
+                        topLeft = Offset(x, y),
+                        size = Size(barW, barHeight),
+                        cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
+                    )
+                }
+            }
+            // Amount labels above bars
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = graphHeight + 4.dp)
+                    .height(24.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                for (i in days.indices) {
+                    val amount = amounts[i]
+                    Box(Modifier.width(barWidth + barSpacing), contentAlignment = Alignment.Center) {
+                        if (amount > 0.0) {
+                            Text(
+                                text = "₹${amount.toInt()}",
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .background(barColor, shape = MaterialTheme.shapes.small)
+                                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                            )
+                        } else {
+                            Spacer(Modifier.height(18.dp))
+                        }
+                    }
+                }
+            }
+            // Date labels below bars
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(top = graphHeight + 8.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                for (i in days.indices) {
+                    Box(Modifier.width(barWidth + barSpacing), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = days[i].format(dateFormatter),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

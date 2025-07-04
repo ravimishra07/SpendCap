@@ -35,8 +35,24 @@ class MainViewModel(
     val dateRange: StateFlow<Pair<Long, Long>> = _dateRange
 
     fun setDateRange(start: Long, end: Long) {
-        _dateRange.value = start to end
-        loadTransactionsByDateRange(start, end)
+        val calStart = Calendar.getInstance().apply { timeInMillis = start }
+        val calEnd = Calendar.getInstance().apply { timeInMillis = end }
+        val isSameDay = calStart.get(Calendar.YEAR) == calEnd.get(Calendar.YEAR) &&
+                calStart.get(Calendar.DAY_OF_YEAR) == calEnd.get(Calendar.DAY_OF_YEAR)
+        if (isSameDay) {
+            // Set start to 00:00:00.000
+            calStart.set(Calendar.HOUR_OF_DAY, 0)
+            calStart.set(Calendar.MINUTE, 0)
+            calStart.set(Calendar.SECOND, 0)
+            calStart.set(Calendar.MILLISECOND, 0)
+            // Set end to 23:59:59.999
+            calEnd.set(Calendar.HOUR_OF_DAY, 23)
+            calEnd.set(Calendar.MINUTE, 59)
+            calEnd.set(Calendar.SECOND, 59)
+            calEnd.set(Calendar.MILLISECOND, 999)
+        }
+        _dateRange.value = calStart.timeInMillis to calEnd.timeInMillis
+        loadTransactionsByDateRange(calStart.timeInMillis, calEnd.timeInMillis)
     }
 
     private fun getDefaultMonthRange(): Pair<Long, Long> {

@@ -27,6 +27,7 @@ import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.setValue
+import com.ravi.samstudioapp.ui.SpendBarGraph
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -45,6 +46,12 @@ fun MainScreen(
     var showDatePicker by remember { mutableStateOf(false) }
     val formatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
     val formattedRange = "${formatter.format(Date(dateRange.first))} - ${formatter.format(Date(dateRange.second))}"
+    val mode = when ((dateRange.second - dateRange.first) / (1000 * 60 * 60 * 24) + 1) {
+        1L -> com.ravi.samstudioapp.ui.DateRangeMode.DAILY
+        7L -> com.ravi.samstudioapp.ui.DateRangeMode.WEEKLY
+        30L -> com.ravi.samstudioapp.ui.DateRangeMode.MONTHLY
+        else -> com.ravi.samstudioapp.ui.DateRangeMode.WEEKLY
+    }
     Scaffold(
         topBar = {
             TopAppBar(
@@ -65,7 +72,14 @@ fun MainScreen(
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
+        Column(modifier = Modifier.padding(padding)) {
+            SpendBarGraph(
+                transactions = transactions,
+                dateRange = dateRange,
+                mode = mode,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
             TransactionList(
                 transactions = transactions,
                 onEdit = onEdit,

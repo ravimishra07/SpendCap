@@ -264,10 +264,27 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onDatePickerChange = { start, end ->
                                     prevRange = currentRange
-                                    currentRange = start to end
+                                    // Patch: expand single-day range to full day
+                                    val calStart = java.util.Calendar.getInstance().apply { timeInMillis = start }
+                                    val calEnd = java.util.Calendar.getInstance().apply { timeInMillis = end }
+                                    val isSameDay = calStart.get(java.util.Calendar.YEAR) == calEnd.get(java.util.Calendar.YEAR) &&
+                                            calStart.get(java.util.Calendar.DAY_OF_YEAR) == calEnd.get(java.util.Calendar.DAY_OF_YEAR)
+                                    if (isSameDay) {
+                                        calStart.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                        calStart.set(java.util.Calendar.MINUTE, 0)
+                                        calStart.set(java.util.Calendar.SECOND, 0)
+                                        calStart.set(java.util.Calendar.MILLISECOND, 0)
+                                        calEnd.set(java.util.Calendar.HOUR_OF_DAY, 23)
+                                        calEnd.set(java.util.Calendar.MINUTE, 59)
+                                        calEnd.set(java.util.Calendar.SECOND, 59)
+                                        calEnd.set(java.util.Calendar.MILLISECOND, 999)
+                                    }
+                                    val newStart = calStart.timeInMillis
+                                    val newEnd = calEnd.timeInMillis
+                                    currentRange = newStart to newEnd
                                     prefs.edit {
-                                        putLong("date_range_start", start)
-                                        putLong("date_range_end", end)
+                                        putLong("date_range_start", newStart)
+                                        putLong("date_range_end", newEnd)
                                         putString("date_range_mode", mode.name)
                                     }
                                 },
