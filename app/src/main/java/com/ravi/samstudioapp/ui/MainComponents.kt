@@ -60,6 +60,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.material3.CircularProgressIndicator
 
 // Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
@@ -176,24 +177,39 @@ fun CustomToolbarWithDateRange(
         // Grouped LazyColumn for smsTransactions
         val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
         val grouped = smsTransactions.groupBy { dateFormat.format(Date(it.messageTime)) }
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            grouped.forEach { (date, txns) ->
-                item {
-                    Text(date, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp))
-                }
-                items(txns) { txn ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp, horizontal = 8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text("Amount: ₹${txn.amount}")
-                            Text("Bank: ${txn.bankName}")
-                            Text("Message: ${txn.rawMessage}", fontSize = 12.sp, color = ComposeColor.Gray)
+        
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                grouped.forEach { (date, txns) ->
+                    item {
+                        Text(date, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp))
+                    }
+                    items(txns) { txn ->
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp, horizontal = 8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text("Amount: ₹${txn.amount}")
+                                Text("Bank: ${txn.bankName}")
+                                Text("Message: ${txn.rawMessage}", fontSize = 12.sp, color = ComposeColor.Gray)
+                            }
                         }
                     }
+                }
+            }
+            
+            // Loading overlay
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(ComposeColor.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             }
         }

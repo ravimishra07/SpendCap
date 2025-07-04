@@ -88,6 +88,17 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Initialize permission launcher
+        requestSmsPermissionLauncher = registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            if (isGranted) {
+                Log.d("SamStudio", "SMS permission granted by user")
+            } else {
+                Log.d("SamStudio", "SMS permission denied by user")
+            }
+        }
+
         // Create dependencies
         val db = AppDatabase.getInstance(applicationContext)
         val dao = db.bankTransactionDao()
@@ -239,26 +250,38 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onRefreshClick = {
+                                    Log.d("SamStudio", "Refresh button clicked, isLoading: $isLoading")
                                     if (!isLoading) {
-                                        when (PackageManager.PERMISSION_GRANTED) {
-                                            ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.READ_SMS
-                                            ) -> {
-                                                coroutineScope.launch {
+                                        val permissionGranted = ContextCompat.checkSelfPermission(
+                                            context,
+                                            Manifest.permission.READ_SMS
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                        
+                                        Log.d("SamStudio", "SMS permission granted: $permissionGranted")
+                                        
+                                        if (permissionGranted) {
+                                            coroutineScope.launch {
+                                                try {
+                                                    Log.d("SamStudio", "Starting SMS parsing...")
                                                     isLoading = true
-                                                    val parsed = readAndParseSms(context)
+                                                    val parsed = withContext(Dispatchers.IO) {
+                                                        readAndParseSms(context)
+                                                    }
+                                                    Log.d("SamStudio", "Parsed ${parsed.size} SMS messages")
+                                                    
                                                     // Save all as BankTransaction, ignore duplicates
                                                     parsed.forEach { sms ->
                                                         val txn = BankTransaction(
                                                             amount = sms.amount,
                                                             bankName = sms.bankName,
                                                             messageTime = sms.messageTime,
-                                                            tags = "",
+                                                            tags = sms.rawMessage,
                                                             count = null
                                                         )
                                                         try {
-                                                            dao.insert(txn)
+                                                            withContext(Dispatchers.IO) {
+                                                                dao.insert(txn)
+                                                            }
                                                         } catch (e: Exception) {
                                                             Log.e(
                                                                 "SamStudio",
@@ -266,7 +289,12 @@ class MainActivity : ComponentActivity() {
                                                             )
                                                         }
                                                     }
-                                                    val allTxns = dao.getAll()
+                                                    
+                                                    val allTxns = withContext(Dispatchers.IO) {
+                                                        dao.getAll()
+                                                    }
+                                                    Log.d("SamStudio", "Retrieved ${allTxns.size} transactions from DB")
+                                                    
                                                     smsTransactions = allTxns.map {
                                                         ParsedSmsTransaction(
                                                             amount = it.amount,
@@ -275,14 +303,19 @@ class MainActivity : ComponentActivity() {
                                                             rawMessage = it.tags
                                                         )
                                                     }
+                                                    Log.d("SamStudio", "Updated smsTransactions list with ${smsTransactions.size} items")
                                                     isLoading = false
-                                                    navController.navigate("smsList")
+                                                } catch (e: Exception) {
+                                                    Log.e("SamStudio", "Error during refresh: ${e.message}", e)
+                                                    isLoading = false
                                                 }
                                             }
-                                            else -> {
-                                                requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
-                                            }
+                                        } else {
+                                            Log.d("SamStudio", "Requesting SMS permission...")
+                                            requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
                                         }
+                                    } else {
+                                        Log.d("SamStudio", "Already loading, ignoring refresh click")
                                     }
                                 },
                                 isLoading = isLoading,
@@ -324,18 +357,9 @@ class MainActivity : ComponentActivity() {
                                         roomTransactions =
                                             withContext(Dispatchers.IO) { dao.getAll() }
                                     }
-                                }
+                                },
+                                smsTransactions = smsTransactions
                             )
-                            if (isLoading) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(24.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator()
-                                }
-                            }
                             Spacer(modifier = Modifier.height(8.dp))
                             // Fetch transactions from Room and map to ExpenseCategory
                             LaunchedEffect(currentRange) {
