@@ -90,6 +90,14 @@ import java.time.format.DateTimeFormatter
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.CornerRadius
+import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
+import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
+import com.patrykandpatrick.vico.compose.chart.Chart
+import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.compose.style.ChartStyle
+import com.patrykandpatrick.vico.core.entry.ChartEntryModel
+import com.patrykandpatrick.vico.core.entry.entryModelOf
+import com.patrykandpatrick.vico.core.entry.entryOf
 
 // Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
@@ -655,86 +663,85 @@ fun SpendBarGraph(
     val amounts = days.map { day ->
         txnsByDay[day]?.sumOf { it.amount } ?: 0.0
     }
-    val maxAmount = (amounts.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
-    val density = LocalDensity.current
-    val barW = with(density) { barWidth.toPx() }
-    val barS = with(density) { barSpacing.toPx() }
-    val graphH = with(density) { graphHeight.toPx() }
-
+    
+    // Debug output
+    LaunchedEffect(amounts) {
+        println("SpendBarGraph days: $days")
+        println("SpendBarGraph amounts: $amounts")
+        println("SpendBarGraph transactions: $transactions")
+        println("SpendBarGraph dateRange: $dateRange")
+    }
+    
+    // Create chart entries for Vico
+    val chartEntries = days.mapIndexed { index, day ->
+        entryOf(index.toFloat(), amounts[index].toFloat())
+    }
+    
+    val chartEntryModel = entryModelOf(chartEntries)
+    
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = "Spending (${mode.days} days)",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(graphHeight + 32.dp),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val totalBars = days.size
-                val totalWidth = totalBars * barW + (totalBars - 1) * barS
-                val startX = (size.width - totalWidth) / 2f
-                for (i in days.indices) {
-                    val amount = amounts[i]
-                    val barHeight = (amount / maxAmount * graphH).toFloat()
-                    val x = startX + i * (barW + barS)
-                    val y = size.height - barHeight - 24.dp.toPx()
-                    drawRoundRect(
-                        color = barColor,
-                        topLeft = Offset(x, y),
-                        size = Size(barW, barHeight),
-                        cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
+        
+        if (amounts.all { it == 0.0 }) {
+            Text(
+                "No spending data in this range", 
+                color = Color.Gray, 
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        } else {
+            Chart(
+                chart = columnChart(),
+                model = chartEntryModel,
+                startAxis = startAxis(),
+                bottomAxis = bottomAxis(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(graphHeight)
+            )
+            
+            // Date labels below chart
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                days.forEach { day ->
+                    Text(
+                        text = day.format(dateFormatter),
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }
-            // Amount labels above bars
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = graphHeight + 4.dp)
-                    .height(24.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                for (i in days.indices) {
-                    val amount = amounts[i]
-                    Box(Modifier.width(barWidth + barSpacing), contentAlignment = Alignment.Center) {
-                        if (amount > 0.0) {
-                            Text(
-                                text = "₹${amount.toInt()}",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier
-                                    .background(barColor, shape = MaterialTheme.shapes.small)
-                                    .padding(horizontal = 4.dp, vertical = 2.dp)
-                            )
-                        } else {
-                            Spacer(Modifier.height(18.dp))
-                        }
-                    }
-                }
-            }
-            // Date labels below bars
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(top = graphHeight + 8.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                for (i in days.indices) {
-                    Box(Modifier.width(barWidth + barSpacing), contentAlignment = Alignment.Center) {
-                        Text(
-                            text = days[i].format(dateFormatter),
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-            }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewSpendBarGraph() {
+    val now = System.currentTimeMillis()
+    val dummyTransactions = listOf(
+        BankTransaction(1, 100.0, "HDFC", "Food", now - 6 * 24 * 60 * 60 * 1000, null, "Food", false),
+        BankTransaction(2, 200.0, "ICICI", "Travel", now - 5 * 24 * 60 * 60 * 1000, null, "Travel", false),
+        BankTransaction(3, 50.0, "SBI", "Cigarette", now - 4 * 24 * 60 * 60 * 1000, null, "Cigarette", false),
+        BankTransaction(4, 80.0, "Axis", "Food", now - 3 * 24 * 60 * 60 * 1000, null, "Food", false),
+        BankTransaction(5, 120.0, "Kotak", "Other", now - 2 * 24 * 60 * 60 * 1000, null, "Other", false),
+        BankTransaction(6, 60.0, "HDFC", "Food", now - 1 * 24 * 60 * 60 * 1000, null, "Food", false),
+        BankTransaction(7, 90.0, "ICICI", "Travel", now, null, "Travel", false)
+    )
+    val dateRange = Pair(now - 6 * 24 * 60 * 60 * 1000, now)
+    SamStudioAppTheme {
+        SpendBarGraph(
+            transactions = dummyTransactions,
+            dateRange = dateRange,
+            mode = DateRangeMode.WEEKLY,
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
+        )
     }
 }

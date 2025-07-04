@@ -80,6 +80,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.ravi.samstudioapp.ui.shiftDateRange
+import com.ravi.samstudioapp.ui.SpendBarGraph
 
 class MainActivity : ComponentActivity() {
     private lateinit var prefs: SharedPreferences
@@ -219,6 +220,14 @@ class MainActivity : ComponentActivity() {
                 ) {
                     composable("main") {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 24.dp)) {
+                            // Add SpendBarGraph with real data from Room
+                            SpendBarGraph(
+                                transactions = roomTransactions,
+                                dateRange = currentRange,
+                                mode = mode,
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
                             // Filter smsTransactions by currentRange
                             val filteredSmsTransactions = smsTransactions.filter {
                                 val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")

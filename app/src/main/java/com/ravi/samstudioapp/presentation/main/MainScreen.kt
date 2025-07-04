@@ -73,8 +73,18 @@ fun MainScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
+            // Dummy data for SpendBarGraph test
+            val dummyTransactions = listOf(
+                BankTransaction(1, 100.0, "HDFC", "Food", System.currentTimeMillis() - 6 * 24 * 60 * 60 * 1000, null, "Food", false),
+                BankTransaction(2, 200.0, "ICICI", "Travel", System.currentTimeMillis() - 5 * 24 * 60 * 60 * 1000, null, "Travel", false),
+                BankTransaction(3, 50.0, "SBI", "Cigarette", System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000, null, "Cigarette", false),
+                BankTransaction(4, 80.0, "Axis", "Food", System.currentTimeMillis() - 3 * 24 * 60 * 60 * 1000, null, "Food", false),
+                BankTransaction(5, 120.0, "Kotak", "Other", System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000, null, "Other", false),
+                BankTransaction(6, 60.0, "HDFC", "Food", System.currentTimeMillis() - 1 * 24 * 60 * 60 * 1000, null, "Food", false),
+                BankTransaction(7, 90.0, "ICICI", "Travel", System.currentTimeMillis(), null, "Travel", false)
+            )
             SpendBarGraph(
-                transactions = transactions,
+                transactions = dummyTransactions,
                 dateRange = dateRange,
                 mode = mode,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
