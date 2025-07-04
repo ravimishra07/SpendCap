@@ -549,3 +549,72 @@ fun SmsTransactionsByDateScreen(
         }
     }
 }
+
+// Utility function for robust date range navigation
+fun shiftDateRange(
+    currentRange: Pair<Long, Long>,
+    mode: DateRangeMode,
+    forward: Boolean,
+    preventFuture: Boolean = true
+): Pair<Long, Long> {
+    val now = System.currentTimeMillis()
+    val days = mode.days
+
+    fun startOfDay(millis: Long): Long {
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = millis
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        return cal.timeInMillis
+    }
+    fun endOfDay(millis: Long): Long {
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = millis
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }
+        return cal.timeInMillis
+    }
+
+    val cal = Calendar.getInstance()
+    val currentStart = startOfDay(currentRange.first)
+    val currentEnd = currentRange.second
+
+    if (days == 1) {
+        cal.timeInMillis = currentStart
+        if (forward) {
+            cal.add(Calendar.DAY_OF_YEAR, 1)
+        } else {
+            cal.add(Calendar.DAY_OF_YEAR, -1)
+        }
+        val newStart = startOfDay(cal.timeInMillis)
+        val isToday = Calendar.getInstance().apply { timeInMillis = newStart }
+            .get(Calendar.DAY_OF_YEAR) == Calendar.getInstance().get(Calendar.DAY_OF_YEAR) &&
+            Calendar.getInstance().apply { timeInMillis = newStart }
+                .get(Calendar.YEAR) == Calendar.getInstance().get(Calendar.YEAR)
+
+        val newEnd = if (isToday && preventFuture) now else endOfDay(newStart)
+        return if (preventFuture && newEnd > now) {
+            Pair(newStart, now)
+        } else {
+            Pair(newStart, newEnd)
+        }
+    }
+
+    val shift = if (forward) days else -days
+    cal.timeInMillis = currentStart
+    cal.add(Calendar.DAY_OF_YEAR, shift)
+    val newStart = startOfDay(cal.timeInMillis)
+    cal.add(Calendar.DAY_OF_YEAR, days - 1)
+    val newEnd = endOfDay(cal.timeInMillis)
+
+    val cappedEnd = if (preventFuture && newEnd > now) now else newEnd
+    val cappedStart = if (preventFuture && cappedEnd < newStart) newStart else newStart
+
+    return Pair(cappedStart, cappedEnd)
+}

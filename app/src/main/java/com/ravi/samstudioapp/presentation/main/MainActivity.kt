@@ -79,6 +79,7 @@ import com.ravi.samstudioapp.ui.FinancialDataComposable
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.ravi.samstudioapp.ui.shiftDateRange
 
 class MainActivity : ComponentActivity() {
     private lateinit var prefs: SharedPreferences
@@ -220,6 +221,9 @@ class MainActivity : ComponentActivity() {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 24.dp)) {
                             // Filter smsTransactions by currentRange
                             val filteredSmsTransactions = smsTransactions.filter {
+                                val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+                                Log.d("SamStudio", "currentRange: ${sdf.format(currentRange.first)} to ${sdf.format(currentRange.second)}")
+                                Log.d("SamStudio", "txn: ${it.bankName} @ ${sdf.format(it.messageTime)}")
                                 it.messageTime in currentRange.first..currentRange.second
                             }
                             CustomToolbarWithDateRange(
@@ -227,25 +231,21 @@ class MainActivity : ComponentActivity() {
                                 mode = mode,
                                 onPrevClick = {
                                     prevRange = currentRange
-                                    val (start, _) = currentRange
-                                    val newEnd = start - 1
-                                    val newStart = newEnd - (mode.days - 1) * 24 * 60 * 60 * 1000L
-                                    currentRange = newStart to newEnd
+                                    val newRange = shiftDateRange(currentRange, mode, forward = false)
+                                    currentRange = newRange
                                     prefs.edit {
-                                        putLong("date_range_start", newStart)
-                                        putLong("date_range_end", newEnd)
+                                        putLong("date_range_start", newRange.first)
+                                        putLong("date_range_end", newRange.second)
                                         putString("date_range_mode", mode.name)
                                     }
                                 },
                                 onNextClick = {
                                     prevRange = currentRange
-                                    val (_, end) = currentRange
-                                    val newStart = end + 1
-                                    val newEnd = newStart + (mode.days - 1) * 24 * 60 * 60 * 1000L
-                                    currentRange = newStart to newEnd
+                                    val newRange = shiftDateRange(currentRange, mode, forward = true)
+                                    currentRange = newRange
                                     prefs.edit {
-                                        putLong("date_range_start", newStart)
-                                        putLong("date_range_end", newEnd)
+                                        putLong("date_range_start", newRange.first)
+                                        putLong("date_range_end", newRange.second)
                                         putString("date_range_mode", mode.name)
                                     }
                                 },
