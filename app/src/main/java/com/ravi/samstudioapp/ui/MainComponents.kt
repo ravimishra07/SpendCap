@@ -92,52 +92,20 @@ fun CustomToolbarWithDateRange(
     currentRange: Pair<Long, Long>,
     mode: DateRangeMode,
     onModeChange: (DateRangeMode) -> Unit,
-    onDatePickerChange: (Long, Long) -> Unit
+    onDatePickerChange: (Long, Long) -> Unit,
+    smsTransactions: List<ParsedSmsTransaction> = emptyList()
 ) {
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
     val context = LocalContext.current
     // Use globalDateRangeMode directly
     val formattedRange = currentRange.let { (start, end) ->
-        if (true) {
+        run {
             val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             "${formatter.format(Date(start))} - ${formatter.format(Date(end))}"
-        } else dateRange
-    }
-    Box(
-        modifier = Modifier
-            .padding(horizontal = 8.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(x = 2.dp, y = 2.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(darkShadow)
-                .blur(6.dp)
-        )
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .offset(x = (-2).dp, y = (-2).dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(lightShadow)
-                .blur(6.dp)
-        )
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(16.dp))
-                .background(backgroundColor)
-                .clickable { showDateRangePicker = true }
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        ) {
-            Text(
-                text = formattedRange,
-                style = MaterialTheme.typography.bodyLarge
-            )
         }
     }
-    Column(modifier = modifier.neumorphicShadow()) {
+    Column(modifier = modifier) {
         // Toolbar Row
         Row(
             modifier = Modifier
@@ -148,14 +116,8 @@ fun CustomToolbarWithDateRange(
         ) {
             Text(text = title, style = MaterialTheme.typography.titleLarge)
             Row {
-                IconButton(onClick = onIcon1Click) {
-                    Icon(Icons.Filled.Search, contentDescription = "Search")
-                }
                 IconButton(onClick = onRefreshClick, enabled = !isLoading) {
                     Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
-                }
-                IconButton(onClick = onAddDummyClick) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add Dummy Data")
                 }
                 // Number toggle with circular background
                 IconButton(onClick = {
@@ -164,7 +126,6 @@ fun CustomToolbarWithDateRange(
                         DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
                         DateRangeMode.MONTHLY -> DateRangeMode.DAILY
                     }
-                    // Update globalDateRangeMode and globalDateRange
                     onModeChange(newMode)
                     val cal = Calendar.getInstance()
                     val end = cal.timeInMillis
@@ -175,12 +136,7 @@ fun CustomToolbarWithDateRange(
                 }) {
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(
-                                color = ComposeColor(0xFF1976D2),
-                                shape = RoundedCornerShape(50)
-                            )
+                        modifier = Modifier.size(32.dp)
                     ) {
                         Text(
                             text = mode.days.toString(),
@@ -197,53 +153,50 @@ fun CustomToolbarWithDateRange(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp)
-                .background(MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(24.dp)),
+                .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
             IconButton(onClick = onPrevClick) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Previous")
             }
-            // Neumorphic effect for date range text
             Box(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .offset(x = 2.dp, y = 2.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(darkShadow)
-                        .blur(6.dp)
+                Text(
+                    text = formattedRange,
+                    style = MaterialTheme.typography.bodyLarge
                 )
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .offset(x = (-2).dp, y = (-2).dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(lightShadow)
-                        .blur(6.dp)
-                )
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(backgroundColor)
-                        .clickable { showDateRangePicker = true }
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = formattedRange,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
             }
             IconButton(onClick = onNextClick) {
                 Icon(Icons.Filled.ArrowForward, contentDescription = "Next")
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
+        // Grouped LazyColumn for smsTransactions
+        val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+        val grouped = smsTransactions.groupBy { dateFormat.format(Date(it.messageTime)) }
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            grouped.forEach { (date, txns) ->
+                item {
+                    Text(date, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp))
+                }
+                items(txns) { txn ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp, horizontal = 8.dp),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp)) {
+                            Text("Amount: ₹${txn.amount}")
+                            Text("Bank: ${txn.bankName}")
+                            Text("Message: ${txn.rawMessage}", fontSize = 12.sp, color = ComposeColor.Gray)
+                        }
+                    }
+                }
+            }
+        }
         val context =LocalContext.current
         if (showDateRangePicker) {
             DatePickerDialog(
@@ -365,11 +318,3 @@ fun SmsTransactionsByDateScreen(
         }
     }
 }
-fun Modifier.neumorphicShadow(): Modifier = this
-    .shadow(
-        elevation = 8.dp,
-        shape = RoundedCornerShape(24.dp),
-        ambientColor = ComposeColor.White.copy(alpha = 0.50f),
-        spotColor = ComposeColor.Black.copy(alpha = 0.35f),
-        clip = false
-    )
