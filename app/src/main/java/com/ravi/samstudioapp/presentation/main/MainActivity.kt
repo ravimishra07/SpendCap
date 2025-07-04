@@ -76,6 +76,9 @@ import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
 import com.ravi.samstudioapp.ui.ExpenseCategory
 import com.ravi.samstudioapp.ui.ExpenseSubType
 import com.ravi.samstudioapp.ui.FinancialDataComposable
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private lateinit var prefs: SharedPreferences
@@ -185,7 +188,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.padding(innerPadding)
                 ) {
                     composable("main") {
-                        Column {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 24.dp)) {
                             CustomToolbarWithDateRange(
                                 currentRange = currentRange,
                                 mode = mode,
@@ -193,39 +196,37 @@ class MainActivity : ComponentActivity() {
                                     prevRange = currentRange
                                     val (start, _) = currentRange
                                     val newEnd = start - 1
-                                    val newStart =
-                                        newEnd - (mode.days - 1) * 24 * 60 * 60 * 1000L
+                                    val newStart = newEnd - (mode.days - 1) * 24 * 60 * 60 * 1000L
                                     currentRange = newStart to newEnd
                                     prefs.edit {
                                         putLong("date_range_start", newStart)
-                                            .putLong("date_range_end", newEnd)
-                                            .putString("date_range_mode", mode.name)
+                                        putLong("date_range_end", newEnd)
+                                        putString("date_range_mode", mode.name)
                                     }
                                 },
                                 onNextClick = {
                                     prevRange = currentRange
                                     val (_, end) = currentRange
                                     val newStart = end + 1
-                                    val newEnd =
-                                        newStart + (mode.days - 1) * 24 * 60 * 60 * 1000L
+                                    val newEnd = newStart + (mode.days - 1) * 24 * 60 * 60 * 1000L
                                     currentRange = newStart to newEnd
                                     prefs.edit {
                                         putLong("date_range_start", newStart)
-                                            .putLong("date_range_end", newEnd)
-                                            .putString("date_range_mode", mode.name)
+                                        putLong("date_range_end", newEnd)
+                                        putString("date_range_mode", mode.name)
                                     }
                                 },
                                 onModeChange = { newMode ->
                                     mode = newMode
-                                    val cal = Calendar.getInstance()
+                                    val cal = java.util.Calendar.getInstance()
                                     val end = cal.timeInMillis
-                                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                                    cal.add(java.util.Calendar.DAY_OF_YEAR, -(newMode.days - 1))
                                     val start = cal.timeInMillis
                                     currentRange = start to end
                                     prefs.edit {
                                         putLong("date_range_start", start)
-                                            .putLong("date_range_end", end)
-                                            .putString("date_range_mode", newMode.name)
+                                        putLong("date_range_end", end)
+                                        putString("date_range_mode", newMode.name)
                                     }
                                 },
                                 onDatePickerChange = { start, end ->
@@ -233,8 +234,8 @@ class MainActivity : ComponentActivity() {
                                     currentRange = start to end
                                     prefs.edit {
                                         putLong("date_range_start", start)
-                                            .putLong("date_range_end", end)
-                                            .putString("date_range_mode", mode.name)
+                                        putLong("date_range_end", end)
+                                        putString("date_range_mode", mode.name)
                                     }
                                 },
                                 onRefreshClick = {
@@ -278,7 +279,6 @@ class MainActivity : ComponentActivity() {
                                                     navController.navigate("smsList")
                                                 }
                                             }
-
                                             else -> {
                                                 requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
                                             }

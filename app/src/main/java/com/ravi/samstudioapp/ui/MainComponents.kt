@@ -1,13 +1,6 @@
 package com.ravi.samstudioapp.ui
 
-import com.ravi.samstudioapp.ui.ExpenseCategory
-import com.ravi.samstudioapp.ui.ExpenseSubType
-import com.ravi.samstudioapp.ui.FinancialDataComposable
-import android.os.Bundle
 import android.widget.Toast
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,17 +14,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.LocalDrink
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -40,12 +35,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -54,45 +47,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.graphics.Color as ComposeColor
-import androidx.compose.ui.platform.LocalContext
-import android.util.Log
-import android.Manifest
-import android.content.pm.PackageManager
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.ContextCompat
-import android.provider.Telephony
-import androidx.compose.foundation.layout.width
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.room.Room
-import com.ravi.samstudioapp.data.AppDatabase
-import com.ravi.samstudioapp.domain.model.BankTransaction
-import androidx.compose.material3.CircularProgressIndicator
-import android.content.SharedPreferences
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 
 // Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
     DAILY(1), WEEKLY(7), MONTHLY(30)
 }
+val darkShadow = ComposeColor.Black.copy(alpha = 0.40f)
+val lightShadow = ComposeColor.White.copy(alpha = 0.10f)
+val backgroundColor = ComposeColor.Black.copy(alpha = 0.9f)
 
 // Define a single source of truth for categories
 val categories = listOf(
@@ -106,7 +81,7 @@ val categories = listOf(
 @Composable
 fun CustomToolbarWithDateRange(
     modifier: Modifier = Modifier,
-    title: String = "Toolbar",
+    title: String = "SpendMirror",
     onIcon1Click: () -> Unit = {},
     dateRange: String = "Date Range",
     onPrevClick: () -> Unit = {},
@@ -124,12 +99,45 @@ fun CustomToolbarWithDateRange(
     val context = LocalContext.current
     // Use globalDateRangeMode directly
     val formattedRange = currentRange.let { (start, end) ->
-        if (start != null && end != null) {
+        if (true) {
             val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
             "${formatter.format(Date(start))} - ${formatter.format(Date(end))}"
         } else dateRange
-    } ?: dateRange
-    Column(modifier = modifier) {
+    }
+    Box(
+        modifier = Modifier
+            .padding(horizontal = 8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(x = 2.dp, y = 2.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(darkShadow)
+                .blur(6.dp)
+        )
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .offset(x = (-2).dp, y = (-2).dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(lightShadow)
+                .blur(6.dp)
+        )
+        Box(
+            modifier = Modifier
+                .clip(RoundedCornerShape(16.dp))
+                .background(backgroundColor)
+                .clickable { showDateRangePicker = true }
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = formattedRange,
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
+    }
+    Column(modifier = modifier.neumorphicShadow()) {
         // Toolbar Row
         Row(
             modifier = Modifier
@@ -198,9 +206,6 @@ fun CustomToolbarWithDateRange(
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Previous")
             }
             // Neumorphic effect for date range text
-            val backgroundColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
-            val lightShadow = ComposeColor.White.copy(alpha = 0.10f)
-            val darkShadow = ComposeColor.Black.copy(alpha = 0.40f)
             Box(
                 modifier = Modifier
                     .padding(horizontal = 8.dp)
@@ -360,3 +365,11 @@ fun SmsTransactionsByDateScreen(
         }
     }
 }
+fun Modifier.neumorphicShadow(): Modifier = this
+    .shadow(
+        elevation = 8.dp,
+        shape = RoundedCornerShape(24.dp),
+        ambientColor = ComposeColor.White.copy(alpha = 0.50f),
+        spotColor = ComposeColor.Black.copy(alpha = 0.35f),
+        clip = false
+    )
