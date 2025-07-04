@@ -14,5 +14,7 @@ data class BankTransaction(
     val bankName: String,
     val tags: String = "",
     val messageTime: Long,
-    val count: Int? = null
+    val count: Int? = null,
+    val category: String = "Other",
+    val verified: Boolean = false
 ) 

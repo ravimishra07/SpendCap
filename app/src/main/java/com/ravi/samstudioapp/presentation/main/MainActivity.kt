@@ -380,7 +380,23 @@ class MainActivity : ComponentActivity() {
                                             withContext(Dispatchers.IO) { dao.getAll() }
                                     }
                                 },
-                                smsTransactions = filteredSmsTransactions
+                                smsTransactions = filteredSmsTransactions,
+                                bankTransactions = roomTransactions,
+                                onEdit = { updatedTxn ->
+                                    coroutineScope.launch {
+                                        withContext(Dispatchers.IO) { dao.update(updatedTxn) }
+                                        val allTxns = withContext(Dispatchers.IO) { dao.getAll() }
+                                        smsTransactions = allTxns.map {
+                                            ParsedSmsTransaction(
+                                                amount = it.amount,
+                                                bankName = it.bankName,
+                                                messageTime = it.messageTime,
+                                                rawMessage = it.tags
+                                            )
+                                        }
+                                        roomTransactions = allTxns
+                                    }
+                                }
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             // Fetch transactions from Room and map to ExpenseCategory
