@@ -200,6 +200,10 @@ class MainActivity : ComponentActivity() {
                 ) {
                     composable("main") {
                         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 24.dp)) {
+                            // Filter smsTransactions by currentRange
+                            val filteredSmsTransactions = smsTransactions.filter {
+                                it.messageTime in currentRange.first..currentRange.second
+                            }
                             CustomToolbarWithDateRange(
                                 currentRange = currentRange,
                                 mode = mode,
@@ -358,7 +362,7 @@ class MainActivity : ComponentActivity() {
                                             withContext(Dispatchers.IO) { dao.getAll() }
                                     }
                                 },
-                                smsTransactions = smsTransactions
+                                smsTransactions = filteredSmsTransactions
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             // Fetch transactions from Room and map to ExpenseCategory

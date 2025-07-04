@@ -166,7 +166,8 @@ fun CustomToolbarWithDateRange(
             ) {
                 Text(
                     text = formattedRange,
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.clickable { showDateRangePicker = true }
                 )
             }
             IconButton(onClick = onNextClick) {
