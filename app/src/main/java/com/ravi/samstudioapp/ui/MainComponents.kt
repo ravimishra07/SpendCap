@@ -61,6 +61,11 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.graphics.vector.ImageVector
 
 // Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
@@ -76,6 +81,18 @@ val categories = listOf(
     "Cigarette" to (Icons.Filled.LocalCafe to ComposeColor(0xFF6D4C41)),
     "Travel" to (Icons.Filled.DirectionsCar to ComposeColor(0xFF388E3C)),
     "Other" to (Icons.Filled.LocalDrink to ComposeColor(0xFF0288D1))
+)
+
+// Central source for categories
+// Each category: name, icon, color, and a matcher function
+
+data class CategoryDef(val name: String, val icon: ImageVector, val color: ComposeColor, val matcher: (ParsedSmsTransaction) -> Boolean)
+
+val categoryDefs = listOf(
+    CategoryDef("Food", Icons.Filled.Fastfood, ComposeColor(0xFFEF6C00)) { txn -> txn.rawMessage.contains("food", ignoreCase = true) || txn.bankName.contains("food", ignoreCase = true) },
+    CategoryDef("Cigarette", Icons.Filled.LocalCafe, ComposeColor(0xFF6D4C41)) { txn -> txn.rawMessage.contains("cigarette", ignoreCase = true) },
+    CategoryDef("Travel", Icons.Filled.DirectionsCar, ComposeColor(0xFF388E3C)) { txn -> txn.rawMessage.contains("travel", ignoreCase = true) },
+    CategoryDef("Other", Icons.Filled.LocalDrink, ComposeColor(0xFF0288D1)) { txn -> true } // fallback
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -175,10 +192,35 @@ fun CustomToolbarWithDateRange(
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
-        // Grouped LazyColumn for smsTransactions
+
+        // Filter chips row
+        var selectedCategory by remember { mutableStateOf<CategoryDef?>(null) }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            categoryDefs.forEach { category ->
+                AssistChip(
+                    onClick = { selectedCategory = if (selectedCategory == category) null else category },
+                    label = { Text(category.name) },
+                    leadingIcon = { Icon(category.icon, contentDescription = category.name) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = if (selectedCategory == category) category.color else ComposeColor.LightGray,
+                        labelColor = if (selectedCategory == category) ComposeColor.White else ComposeColor.Black
+                    ),
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Grouped LazyColumn for smsTransactions, filtered by selected chip
         val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-        val grouped = smsTransactions.groupBy { dateFormat.format(Date(it.messageTime)) }
-        
+        val filteredTxns = selectedCategory?.let { cat -> smsTransactions.filter { cat.matcher(it) } } ?: smsTransactions
+        val grouped = filteredTxns.groupBy { dateFormat.format(Date(it.messageTime)) }
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 grouped.forEach { (date, txns) ->

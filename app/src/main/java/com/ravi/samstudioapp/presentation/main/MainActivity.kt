@@ -150,18 +150,32 @@ class MainActivity : ComponentActivity() {
             var editingTransaction by remember { mutableStateOf<BankTransaction?>(null) }
             var showDialog by remember { mutableStateOf(false) }
 
+            val db = Room.databaseBuilder(
+                applicationContext,
+                AppDatabase::class.java,
+                "app_db"
+            ).build()
+            val dao = db.bankTransactionDao()
 
-//            MainScreen(
-//                viewModel = viewModel,
-//                onEdit = {
-//                    editingTransaction = it
-//                    showDialog = true
-//                },
-//                onAdd = {
-//                    editingTransaction = null
-//                    showDialog = true
-//                }
-//            )
+            LaunchedEffect(Unit) {
+                val savedStart = prefs.getLong("date_range_start", -1L)
+                val savedEnd = prefs.getLong("date_range_end", -1L)
+                val savedMode = prefs.getString("date_range_mode", null)
+                if (savedStart > 0 && savedEnd > 0 && savedMode != null) {
+                    mode = DateRangeMode.valueOf(savedMode)
+                    currentRange = savedStart to savedEnd
+                }
+                // Load all transactions from Room on app start
+                val allTxns = withContext(Dispatchers.IO) { dao.getAll() }
+                smsTransactions = allTxns.map {
+                    ParsedSmsTransaction(
+                        amount = it.amount,
+                        bankName = it.bankName,
+                        messageTime = it.messageTime,
+                        rawMessage = it.tags
+                    )
+                }
+            }
 
             if (showDialog) {
                 EditTransactionDialog(
@@ -184,13 +198,17 @@ class MainActivity : ComponentActivity() {
                     mode = DateRangeMode.valueOf(savedMode)
                     currentRange = savedStart to savedEnd
                 }
+                // Load all transactions from Room on app start
+                val allTxns = withContext(Dispatchers.IO) { dao.getAll() }
+                smsTransactions = allTxns.map {
+                    ParsedSmsTransaction(
+                        amount = it.amount,
+                        bankName = it.bankName,
+                        messageTime = it.messageTime,
+                        rawMessage = it.tags
+                    )
+                }
             }
-            val db = Room.databaseBuilder(
-                applicationContext,
-                AppDatabase::class.java,
-                "app_db"
-            ).build()
-            val dao = db.bankTransactionDao()
 
             Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                 NavHost(
