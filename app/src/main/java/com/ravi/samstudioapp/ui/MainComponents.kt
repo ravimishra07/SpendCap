@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.LocalCafe
@@ -97,8 +98,8 @@ import com.patrykandpatrick.vico.core.entry.entryOf
 import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
 import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.utils.Constants
-
-
+import android.content.Intent
+import com.ravi.samstudioapp.presentation.insights.InsightsActivity
 
 
 // Add DateRangeMode enum at the top level
@@ -166,6 +167,7 @@ fun CustomToolbarWithDateRange(
     onPrevClick: () -> Unit = {},
     onNextClick: () -> Unit = {},
     onRefreshClick: () -> Unit = {},
+    onInsightsClick: () -> Unit = {},
     isLoading: Boolean = false,
     onAddDummyClick: () -> Unit = {},
     currentRange: Pair<Long, Long>,
@@ -216,8 +218,15 @@ fun CustomToolbarWithDateRange(
                 color = ComposeColor.White
             )
             Row {
+                IconButton(onClick = onInsightsClick) {
+                    Icon(
+                        Icons.Filled.Analytics, 
+                        contentDescription = "Insights",
+                        tint = ComposeColor.White
+                    )
+                }
                 IconButton(onClick = onRefreshClick, enabled = !isLoading) {
-                    Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
+                    Icon(Icons.Filled.Refresh,  tint = ComposeColor.White,contentDescription = "Refresh")
                 }
                 // Number toggle with circular background
                 IconButton(onClick = {
@@ -938,8 +947,19 @@ fun LoadMainScreen(viewModel: MainViewModel) {
     val currentRange by viewModel.dateRange.collectAsState()
     val mode by viewModel.dateRangeMode.collectAsState()
     val prevRange by viewModel.prevRange.collectAsState()
+
     val prefs = context.getSharedPreferences(MainViewModel.CORE_NAME, Context.MODE_PRIVATE)
     viewModel.loadInitialPreferences(prefs)
+
+    // Helper function to save preferences
+    fun savePreferences() {
+        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
+        prefs.edit {
+            putLong(MainViewModel.RANGE_START, start)
+            putLong(MainViewModel.RANGE_END, end)
+            putString(MainViewModel.RANGE_MODE, modeName)
+        }
+    }
 
     SamStudioAppTheme {
         Box(
@@ -960,43 +980,19 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     prefs = prefs,
                     onPrevClick = {
                         viewModel.shiftDateRange(forward = false)
-                        // Save to preferences
-                        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
-                        prefs.edit {
-                            putLong(MainViewModel.RANGE_START, start)
-                            putLong(MainViewModel.RANGE_END, end)
-                            putString(MainViewModel.RANGE_MODE, modeName)
-                        }
+                        savePreferences()
                     },
                     onNextClick = {
                         viewModel.shiftDateRange(forward = true)
-                        // Save to preferences
-                        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
-                        prefs.edit {
-                            putLong(MainViewModel.RANGE_START, start)
-                            putLong(MainViewModel.RANGE_END, end)
-                            putString(MainViewModel.RANGE_MODE, modeName)
-                        }
+                        savePreferences()
                     },
                     onModeChange = { newMode ->
                         viewModel.changeDateRangeMode(newMode)
-                        // Save to preferences
-                        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
-                        prefs.edit {
-                            putLong(MainViewModel.RANGE_START, start)
-                            putLong(MainViewModel.RANGE_END, end)
-                            putString(MainViewModel.RANGE_MODE, modeName)
-                        }
+                        savePreferences()
                     },
                     onDatePickerChange = { start, end ->
                         viewModel.setDateRangeFromPicker(start, end)
-                        // Save to preferences
-                        val (startRange, endRange, modeName) = viewModel.getDateRangeForPreferences()
-                        prefs.edit {
-                            putLong(MainViewModel.RANGE_START, startRange)
-                            putLong(MainViewModel.RANGE_END, endRange)
-                            putString(MainViewModel.RANGE_MODE, modeName)
-                        }
+                        savePreferences()
                     },
                     onRefreshClick = {
                         Log.d("SamStudio", "Refresh button clicked, isLoading: $isLoading")
@@ -1018,9 +1014,13 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                             Log.d("SamStudio", "Already loading, ignoring refresh click")
                         }
                     },
+                    onInsightsClick = {
+                        // Navigate to insights activity
+                        val intent = Intent(context, InsightsActivity::class.java)
+                        context.startActivity(intent)
+                    },
                     isLoading = isLoading,
                     onAddDummyClick = {
-                        viewModel.addDummyTransactions()
                     },
                     smsTransactions = filteredSmsTransactions,
                     bankTransactions = transactions,

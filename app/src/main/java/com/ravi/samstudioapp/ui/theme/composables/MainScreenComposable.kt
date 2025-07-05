@@ -63,161 +63,161 @@ import java.util.Calendar
 
 // Final step: Refactor LoadMainScreen to use extracted modular components.
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LoadMainScreen1(viewModel: MainViewModel) {
-    val context = LocalContext.current
-    val prefs = context.getSharedPreferences("samstudio_prefs", Context.MODE_PRIVATE)
-    val coroutineScope = rememberCoroutineScope()
-
-    val db = AppDatabase.getInstance(context)
-    val dao = db.bankTransactionDao()
-
-    var smsTransactions by remember { mutableStateOf<List<ParsedSmsTransaction>>(emptyList()) }
-    var roomTransactions by remember { mutableStateOf<List<BankTransaction>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(false) }
-    var showEditSheet by remember { mutableStateOf(false) }
-    var editId by remember { mutableStateOf<Int?>(null) }
-    var editAmount by remember { mutableStateOf("") }
-    var editType by remember { mutableStateOf("") }
-    var selectedTabIndex by remember { mutableStateOf(0) }
-    var mode by remember { mutableStateOf(DateRangeMode.DAILY) }
-    var currentRange by remember {
-        val cal = Calendar.getInstance()
-        val end = cal.timeInMillis
-        cal.add(Calendar.DAY_OF_YEAR, -(mode.days - 1))
-        val start = cal.timeInMillis
-        mutableStateOf(start to end)
-    }
-
-    LaunchedEffect(Unit) {
-        LoadInitialPreferences(prefs, dao) { parsed, savedMode, savedRange ->
-            coroutineScope.launch {
-                smsTransactions = parsed
-                roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
-                mode = savedMode
-                currentRange = savedRange
-            }
-        }
-    }
-
-    if (showEditSheet && editId != null) {
-        TransactionEditBottomSheet(
-            editAmount = editAmount,
-            onAmountChange = { editAmount = it },
-            editType = editType,
-            onTypeChange = { editType = it },
-            typeOptions = categories.map { it.first },
-            onCancelClick = { showEditSheet = false },
-            onSaveClick = {
-                val amt = editAmount.toDoubleOrNull()
-                if (amt != null && editType.isNotBlank()) {
-                    coroutineScope.launch {
-                        val txn = roomTransactions.find { it.id == editId }
-                        txn?.let {
-                            val updatedTxn = it.copy(amount = amt, tags = editType)
-                            viewModel.updateTransaction(updatedTxn)
-                            roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
-                        }
-                        showEditSheet = false
-                    }
-                }
-            }
-        )
-    }
-
-    ToolbarWithDateRange(
-        currentRange = currentRange,
-        mode = mode,
-        prevRange = null,
-        prefs = prefs,
-        onPrevClick = {
-            val newRange = shiftDateRange(currentRange, mode, forward = false)
-            currentRange = newRange
-            prefs.edit {
-                putLong("date_range_start", newRange.first)
-                putLong("date_range_end", newRange.second)
-                putString("date_range_mode", mode.name)
-            }
-        },
-        onNextClick = {
-            val newRange = shiftDateRange(currentRange, mode, forward = true)
-            currentRange = newRange
-            prefs.edit {
-                putLong("date_range_start", newRange.first)
-                putLong("date_range_end", newRange.second)
-                putString("date_range_mode", mode.name)
-            }
-        },
-        onModeChange = { newMode ->
-            mode = newMode
-            val cal = Calendar.getInstance()
-            val end = cal.timeInMillis
-            cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-            val start = cal.timeInMillis
-            currentRange = start to end
-            prefs.edit {
-                putLong("date_range_start", start)
-                putLong("date_range_end", end)
-                putString("date_range_mode", newMode.name)
-            }
-        },
-        onDatePickerChange = { start, end ->
-            currentRange = start to end
-            prefs.edit {
-                putLong("date_range_start", start)
-                putLong("date_range_end", end)
-                putString("date_range_mode", mode.name)
-            }
-        },
-        onRefreshClick = {
-            coroutineScope.launch {
-                HandleRefreshSms(
-                    context = context,
-                    dao = dao,
-                    onStart = { isLoading = true },
-                    onComplete = {
-                        coroutineScope.launch {
-                            smsTransactions = it
-                            roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
-                            isLoading = false
-                        }
-                    },
-                    onError = {
-                        Log.e("SamStudio", "Error refreshing SMS", it)
-                        isLoading = false
-                    }
-                )
-            }
-        },
-        isLoading = isLoading,
-        onAddDummyClick = {},
-        smsTransactions = smsTransactions,
-        bankTransactions = roomTransactions,
-        onEdit = { editingTxn ->
-            editId = editingTxn.id
-            editAmount = editingTxn.amount.toString()
-            editType = editingTxn.tags
-            showEditSheet = true
-        }
-    )
-
-    SpendMirrorMainContent(
-        selectedTabIndex = selectedTabIndex,
-        onTabSelected = { selectedTabIndex = it },
-        smsTransactions = smsTransactions,
-        roomTransactions = roomTransactions,
-        currentRange = currentRange,
-        mode = mode,
-        categories = categories,
-        onEditClick = { categoryName, subType ->
-            editId = subType.id
-            editAmount = subType.amount.toString()
-            editType = categoryName
-            showEditSheet = true
-        }
-    )
-}
+//@OptIn(ExperimentalMaterial3Api::class)
+//@Composable
+//fun LoadMainScreen1(viewModel: MainViewModel) {
+//    val context = LocalContext.current
+//    val prefs = context.getSharedPreferences("samstudio_prefs", Context.MODE_PRIVATE)
+//    val coroutineScope = rememberCoroutineScope()
+//
+//    val db = AppDatabase.getInstance(context)
+//    val dao = db.bankTransactionDao()
+//
+//    var smsTransactions by remember { mutableStateOf<List<ParsedSmsTransaction>>(emptyList()) }
+//    var roomTransactions by remember { mutableStateOf<List<BankTransaction>>(emptyList()) }
+//    var isLoading by remember { mutableStateOf(false) }
+//    var showEditSheet by remember { mutableStateOf(false) }
+//    var editId by remember { mutableStateOf<Int?>(null) }
+//    var editAmount by remember { mutableStateOf("") }
+//    var editType by remember { mutableStateOf("") }
+//    var selectedTabIndex by remember { mutableStateOf(0) }
+//    var mode by remember { mutableStateOf(DateRangeMode.DAILY) }
+//    var currentRange by remember {
+//        val cal = Calendar.getInstance()
+//        val end = cal.timeInMillis
+//        cal.add(Calendar.DAY_OF_YEAR, -(mode.days - 1))
+//        val start = cal.timeInMillis
+//        mutableStateOf(start to end)
+//    }
+//
+//    LaunchedEffect(Unit) {
+//        LoadInitialPreferences(prefs, dao) { parsed, savedMode, savedRange ->
+//            coroutineScope.launch {
+//                smsTransactions = parsed
+//                roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+//                mode = savedMode
+//                currentRange = savedRange
+//            }
+//        }
+//    }
+//
+//    if (showEditSheet && editId != null) {
+//        TransactionEditBottomSheet(
+//            editAmount = editAmount,
+//            onAmountChange = { editAmount = it },
+//            editType = editType,
+//            onTypeChange = { editType = it },
+//            typeOptions = categories.map { it.first },
+//            onCancelClick = { showEditSheet = false },
+//            onSaveClick = {
+//                val amt = editAmount.toDoubleOrNull()
+//                if (amt != null && editType.isNotBlank()) {
+//                    coroutineScope.launch {
+//                        val txn = roomTransactions.find { it.id == editId }
+//                        txn?.let {
+//                            val updatedTxn = it.copy(amount = amt, tags = editType)
+//                            viewModel.updateTransaction(updatedTxn)
+//                            roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+//                        }
+//                        showEditSheet = false
+//                    }
+//                }
+//            }
+//        )
+//    }
+//
+//    ToolbarWithDateRange(
+//        currentRange = currentRange,
+//        mode = mode,
+//        prevRange = null,
+//        prefs = prefs,
+//        onPrevClick = {
+//            val newRange = shiftDateRange(currentRange, mode, forward = false)
+//            currentRange = newRange
+//            prefs.edit {
+//                putLong("date_range_start", newRange.first)
+//                putLong("date_range_end", newRange.second)
+//                putString("date_range_mode", mode.name)
+//            }
+//        },
+//        onNextClick = {
+//            val newRange = shiftDateRange(currentRange, mode, forward = true)
+//            currentRange = newRange
+//            prefs.edit {
+//                putLong("date_range_start", newRange.first)
+//                putLong("date_range_end", newRange.second)
+//                putString("date_range_mode", mode.name)
+//            }
+//        },
+//        onModeChange = { newMode ->
+//            mode = newMode
+//            val cal = Calendar.getInstance()
+//            val end = cal.timeInMillis
+//            cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+//            val start = cal.timeInMillis
+//            currentRange = start to end
+//            prefs.edit {
+//                putLong("date_range_start", start)
+//                putLong("date_range_end", end)
+//                putString("date_range_mode", newMode.name)
+//            }
+//        },
+//        onDatePickerChange = { start, end ->
+//            currentRange = start to end
+//            prefs.edit {
+//                putLong("date_range_start", start)
+//                putLong("date_range_end", end)
+//                putString("date_range_mode", mode.name)
+//            }
+//        },
+//        onRefreshClick = {
+//            coroutineScope.launch {
+//                HandleRefreshSms(
+//                    context = context,
+//                    dao = dao,
+//                    onStart = { isLoading = true },
+//                    onComplete = {
+//                        coroutineScope.launch {
+//                            smsTransactions = it
+//                            roomTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+//                            isLoading = false
+//                        }
+//                    },
+//                    onError = {
+//                        Log.e("SamStudio", "Error refreshing SMS", it)
+//                        isLoading = false
+//                    }
+//                )
+//            }
+//        },
+//        isLoading = isLoading,
+//        onAddDummyClick = {},
+//        smsTransactions = smsTransactions,
+//        bankTransactions = roomTransactions,
+//        onEdit = { editingTxn ->
+//            editId = editingTxn.id
+//            editAmount = editingTxn.amount.toString()
+//            editType = editingTxn.tags
+//            showEditSheet = true
+//        }
+//    )
+//
+//    SpendMirrorMainContent(
+//        selectedTabIndex = selectedTabIndex,
+//        onTabSelected = { selectedTabIndex = it },
+//        smsTransactions = smsTransactions,
+//        roomTransactions = roomTransactions,
+//        currentRange = currentRange,
+//        mode = mode,
+//        categories = categories,
+//        onEditClick = { categoryName, subType ->
+//            editId = subType.id
+//            editAmount = subType.amount.toString()
+//            editType = categoryName
+//            showEditSheet = true
+//        }
+//    )
+//}
 
 suspend fun HandleRefreshSms(
     context: Context,

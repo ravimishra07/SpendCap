@@ -27,6 +27,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".presentation.insights.InsightsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SamStudioApp" />
     </application>
 
 </manifest>
