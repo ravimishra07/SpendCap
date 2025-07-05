@@ -933,6 +933,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
     // Get state from ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
     val smsTransactions by viewModel.smsTransactions.collectAsState()
+    val filteredSmsTransactions by viewModel.filteredSmsTransactions.collectAsState()
     val transactions by viewModel.transactions.collectAsState()
     val currentRange by viewModel.dateRange.collectAsState()
     val mode by viewModel.dateRangeMode.collectAsState()
@@ -957,19 +958,6 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     .background(MaterialTheme.colorScheme.background)
                     .padding(horizontal = 12.dp, vertical = 24.dp)
             ) {
-                // Filter smsTransactions by currentRange
-                val filteredSmsTransactions = smsTransactions.filter {
-                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
-                    Log.d(
-                        "SamStudio",
-                        "currentRange: ${sdf.format(currentRange.first)} to ${
-                            sdf.format(currentRange.second)
-                        }"
-                    )
-                    Log.d("SamStudio", "txn: ${it.bankName} @ ${sdf.format(it.messageTime)}")
-                    it.messageTime in currentRange.first..currentRange.second
-                }
-
                 ToolbarWithDateRange(
                     currentRange = currentRange,
                     mode = mode,
@@ -1039,7 +1027,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     onAddDummyClick = {
                         viewModel.addDummyTransactions()
                     },
-                    smsTransactions = smsTransactions,
+                    smsTransactions = filteredSmsTransactions,
                     bankTransactions = transactions,
                     onEdit = { editingTransaction = it; showDialog = true }
                 )

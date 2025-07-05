@@ -40,6 +40,9 @@ class MainViewModel(
     private val _smsTransactions = MutableStateFlow<List<ParsedSmsTransaction>>(emptyList())
     val smsTransactions: StateFlow<List<ParsedSmsTransaction>> = _smsTransactions
 
+    private val _filteredSmsTransactions = MutableStateFlow<List<ParsedSmsTransaction>>(emptyList())
+    val filteredSmsTransactions: StateFlow<List<ParsedSmsTransaction>> = _filteredSmsTransactions
+
     private val _dateRangeMode = MutableStateFlow(DateRangeMode.DAILY)
     val dateRangeMode: StateFlow<DateRangeMode> = _dateRangeMode
 
@@ -73,6 +76,7 @@ class MainViewModel(
         }
         _dateRange.value = calStart.timeInMillis to calEnd.timeInMillis
         loadTransactionsByDateRange(calStart.timeInMillis, calEnd.timeInMillis)
+        updateFilteredSmsTransactions()
     }
 
     private fun getDefaultMonthRange(): Pair<Long, Long> {
@@ -130,6 +134,7 @@ class MainViewModel(
                 }
                 loadAllTransactions()
                 loadSmsTransactions()
+                updateFilteredSmsTransactions()
             } catch (e: Exception) {
                 // Handle error
             } finally {
@@ -151,7 +156,16 @@ class MainViewModel(
                     rawMessage = it.tags
                 )
             }
+            updateFilteredSmsTransactions()
         }
+    }
+
+    private fun updateFilteredSmsTransactions() {
+        val currentRange = _dateRange.value
+        val filtered = _smsTransactions.value.filter {
+            it.messageTime in currentRange.first..currentRange.second
+        }
+        _filteredSmsTransactions.value = filtered
     }
 
     fun loadInitialPreferences(prefs: SharedPreferences) {
@@ -165,12 +179,14 @@ class MainViewModel(
         }
         
         loadSmsTransactions()
+        updateFilteredSmsTransactions()
     }
 
     fun shiftDateRange(forward: Boolean) {
         _prevRange.value = _dateRange.value
         val newRange = calculateShiftedRange(_dateRange.value, _dateRangeMode.value, forward)
         _dateRange.value = newRange
+        updateFilteredSmsTransactions()
         saveDateRangeToPreferences()
     }
 
@@ -181,6 +197,7 @@ class MainViewModel(
         cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
         val start = cal.timeInMillis
         _dateRange.value = start to end
+        updateFilteredSmsTransactions()
         saveDateRangeToPreferences()
     }
 
@@ -207,6 +224,7 @@ class MainViewModel(
         val newStart = calStart.timeInMillis
         val newEnd = calEnd.timeInMillis
         _dateRange.value = newStart to newEnd
+        updateFilteredSmsTransactions()
         saveDateRangeToPreferences()
     }
 
@@ -247,6 +265,7 @@ class MainViewModel(
             dummyList.forEach { insertTransaction(it) }
             loadAllTransactions()
             loadSmsTransactions()
+            updateFilteredSmsTransactions()
         }
     }
 
