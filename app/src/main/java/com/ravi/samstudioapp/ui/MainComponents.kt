@@ -1,5 +1,9 @@
 package com.ravi.samstudioapp.ui
 
+import android.Manifest
+import android.content.Context.MODE_PRIVATE
+import android.content.pm.PackageManager
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -11,14 +15,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -26,7 +27,6 @@ import androidx.compose.material.icons.filled.Fastfood
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePickerDialog
@@ -47,9 +47,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -73,36 +70,47 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import java.time.Instant
-import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.core.content.ContextCompat
+import androidx.core.content.edit
+import androidx.room.Room
 import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
-import com.patrykandpatrick.vico.compose.style.ChartStyle
-import com.patrykandpatrick.vico.core.entry.ChartEntryModel
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
+import com.ravi.samstudioapp.data.AppDatabase
+import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
+import com.ravi.samstudioapp.presentation.main.MainViewModel
+import com.ravi.samstudioapp.utils.Constants
+import com.ravi.samstudioapp.utils.SharedPreference.CORE_NAME
+import com.ravi.samstudioapp.utils.SharedPreference.RANGE_END
+import com.ravi.samstudioapp.utils.SharedPreference.RANGE_MODE
+import com.ravi.samstudioapp.utils.SharedPreference.RANGE_START
+import com.ravi.samstudioapp.utils.readAndParseSms
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 // Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
     DAILY(1), WEEKLY(7), MONTHLY(30)
 }
+
 val darkShadow = ComposeColor.Black.copy(alpha = 0.40f)
 val lightShadow = ComposeColor.White.copy(alpha = 0.10f)
 val backgroundColor = ComposeColor.Black.copy(alpha = 0.9f)
@@ -118,13 +126,39 @@ val categories = listOf(
 // Central source for categories
 // Each category: name, icon, color, and a matcher function
 
-data class CategoryDef(val name: String, val icon: ImageVector, val color: ComposeColor, val matcher: (ParsedSmsTransaction) -> Boolean)
+data class CategoryDef(
+    val name: String,
+    val icon: ImageVector,
+    val color: ComposeColor,
+    val matcher: (ParsedSmsTransaction) -> Boolean
+)
 
 val categoryDefs = listOf(
-    CategoryDef("Food", Icons.Filled.Fastfood, ComposeColor(0xFFEF6C00)) { txn -> txn.rawMessage.contains("food", ignoreCase = true) || txn.bankName.contains("food", ignoreCase = true) },
-    CategoryDef("Cigarette", Icons.Filled.LocalCafe, ComposeColor(0xFF6D4C41)) { txn -> txn.rawMessage.contains("cigarette", ignoreCase = true) },
-    CategoryDef("Travel", Icons.Filled.DirectionsCar, ComposeColor(0xFF388E3C)) { txn -> txn.rawMessage.contains("travel", ignoreCase = true) },
-    CategoryDef("Other", Icons.Filled.LocalDrink, ComposeColor(0xFF0288D1)) { txn -> true } // fallback
+    CategoryDef(
+        "Food",
+        Icons.Filled.Fastfood,
+        ComposeColor(0xFFEF6C00)
+    ) { txn ->
+        txn.rawMessage.contains("food", ignoreCase = true) || txn.bankName.contains(
+            "food",
+            ignoreCase = true
+        )
+    },
+    CategoryDef(
+        "Cigarette",
+        Icons.Filled.LocalCafe,
+        ComposeColor(0xFF6D4C41)
+    ) { txn -> txn.rawMessage.contains("cigarette", ignoreCase = true) },
+    CategoryDef(
+        "Travel",
+        Icons.Filled.DirectionsCar,
+        ComposeColor(0xFF388E3C)
+    ) { txn -> txn.rawMessage.contains("travel", ignoreCase = true) },
+    CategoryDef(
+        "Other",
+        Icons.Filled.LocalDrink,
+        ComposeColor(0xFF0288D1)
+    ) { txn -> true } // fallback
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -181,7 +215,11 @@ fun CustomToolbarWithDateRange(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleLarge, color = ComposeColor.White)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = ComposeColor.White
+            )
             Row {
                 IconButton(onClick = onRefreshClick, enabled = !isLoading) {
                     Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
@@ -199,7 +237,11 @@ fun CustomToolbarWithDateRange(
                     cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
                     val start = cal.timeInMillis
                     onDatePickerChange(start, end)
-                    Toast.makeText(context, "Range changed to ${newMode.days} days", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        context,
+                        "Range changed to ${newMode.days} days",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }) {
                     Box(
                         contentAlignment = Alignment.Center,
@@ -225,7 +267,11 @@ fun CustomToolbarWithDateRange(
             horizontalArrangement = Arrangement.Center
         ) {
             IconButton(onClick = onPrevClick) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Previous", tint  = ComposeColor.White)
+                Icon(
+                    Icons.Filled.ArrowBack,
+                    contentDescription = "Previous",
+                    tint = ComposeColor.White
+                )
             }
             Box(
                 modifier = Modifier.padding(horizontal = 8.dp)
@@ -238,7 +284,11 @@ fun CustomToolbarWithDateRange(
                 )
             }
             IconButton(onClick = onNextClick) {
-                Icon(Icons.Filled.ArrowForward, contentDescription = "Next",tint  = ComposeColor.White)
+                Icon(
+                    Icons.Filled.ArrowForward,
+                    contentDescription = "Next",
+                    tint = ComposeColor.White
+                )
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
@@ -254,8 +304,10 @@ fun CustomToolbarWithDateRange(
         ) {
             categoryDefs.forEach { category ->
                 AssistChip(
-                    onClick = { selectedCategory = if (selectedCategory == category) null else category },
-                    label = { Text(category.name,color = ComposeColor.White,) },
+                    onClick = {
+                        selectedCategory = if (selectedCategory == category) null else category
+                    },
+                    label = { Text(category.name, color = ComposeColor.White) },
                     leadingIcon = { Icon(category.icon, contentDescription = category.name) },
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = if (selectedCategory == category) category.color else ComposeColor.LightGray,
@@ -269,16 +321,25 @@ fun CustomToolbarWithDateRange(
 
         // Grouped LazyColumn for smsTransactions, filtered by selected chip
         val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-        val filteredTxns = selectedCategory?.let { cat -> smsTransactions.filter { cat.matcher(it) } } ?: smsTransactions
+        val filteredTxns =
+            selectedCategory?.let { cat -> smsTransactions.filter { cat.matcher(it) } }
+                ?: smsTransactions
         val grouped = filteredTxns.groupBy { dateFormat.format(Date(it.messageTime)) }
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 grouped.forEach { (date, txns) ->
                     item {
-                        Text(date, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),color = ComposeColor.White)
+                        Text(
+                            date,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                            color = ComposeColor.White
+                        )
                     }
                     items(txns) { txn ->
-                        val bankTxn = bankTransactions.find { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
+                        val bankTxn =
+                            bankTransactions.find { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -286,19 +347,35 @@ fun CustomToolbarWithDateRange(
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
+                                val dateTimeFormat = remember {
+                                    SimpleDateFormat(
+                                        "MMM dd, yyyy, hh:mm a",
+                                        Locale.getDefault()
+                                    )
+                                }
                                 val dateTime = dateTimeFormat.format(Date(txn.messageTime))
-                                Text("Amount: ₹${txn.amount}",color = ComposeColor.White,)
-                                Text("Bank: ${txn.bankName}",color = ComposeColor.White,)
-                                Text("Message: ${txn.rawMessage}", fontSize = 12.sp, color = ComposeColor.Gray)
+                                Text("Amount: ₹${txn.amount}", color = ComposeColor.White)
+                                Text("Bank: ${txn.bankName}", color = ComposeColor.White)
+                                Text(
+                                    "Message: ${txn.rawMessage}",
+                                    fontSize = 12.sp,
+                                    color = ComposeColor.Gray
+                                )
                                 // Show category as a chip
                                 val catName = bankTxn?.category ?: "Other"
-                                val catDef = categoryDefs.find { it.name.equals(catName, ignoreCase = true) } ?: categoryDefs.last()
+                                val catDef =
+                                    categoryDefs.find { it.name.equals(catName, ignoreCase = true) }
+                                        ?: categoryDefs.last()
                                 Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                                     AssistChip(
                                         onClick = {},
-                                        label = { Text(catDef.name,color = ComposeColor.White,) },
-                                        leadingIcon = { Icon(catDef.icon, contentDescription = catDef.name) },
+                                        label = { Text(catDef.name, color = ComposeColor.White) },
+                                        leadingIcon = {
+                                            Icon(
+                                                catDef.icon,
+                                                contentDescription = catDef.name
+                                            )
+                                        },
                                         colors = AssistChipDefaults.assistChipColors(
                                             containerColor = catDef.color,
                                             labelColor = ComposeColor.White
@@ -308,8 +385,18 @@ fun CustomToolbarWithDateRange(
                                         Spacer(Modifier.width(8.dp))
                                         AssistChip(
                                             onClick = {},
-                                            label = { Text("Verified",color = ComposeColor.White,) },
-                                            leadingIcon = { Icon(Icons.Filled.Check, contentDescription = "Verified") },
+                                            label = {
+                                                Text(
+                                                    "Verified",
+                                                    color = ComposeColor.White,
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.Check,
+                                                    contentDescription = "Verified"
+                                                )
+                                            },
                                             colors = AssistChipDefaults.assistChipColors(
                                                 containerColor = ComposeColor(0xFF388E3C),
                                                 labelColor = ComposeColor.White
@@ -317,7 +404,10 @@ fun CustomToolbarWithDateRange(
                                         )
                                     }
                                 }
-                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
                                     IconButton(onClick = {
                                         val txnToEdit = bankTxn ?: BankTransaction(
                                             amount = txn.amount,
@@ -328,14 +418,17 @@ fun CustomToolbarWithDateRange(
                                             category = "Other"
                                         )
                                         editingTxn = txnToEdit
-                                        Toast.makeText(context, "Edit clicked", Toast.LENGTH_SHORT).show()
+                                        Toast.makeText(context, "Edit clicked", Toast.LENGTH_SHORT)
+                                            .show()
                                     }) {
                                         Icon(Icons.Filled.Edit, contentDescription = "Edit")
                                     }
                                 }
                                 // Date & Time at the bottom, bold and larger
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
                                     horizontalArrangement = Arrangement.End
                                 ) {
                                     Text(
@@ -343,7 +436,9 @@ fun CustomToolbarWithDateRange(
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = ComposeColor.White,
-                                        modifier = Modifier.background(ComposeColor(0xFF222222)).padding(horizontal = 8.dp, vertical = 4.dp)
+                                        modifier = Modifier
+                                            .background(ComposeColor(0xFF222222))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
                                     )
                                 }
                             }
@@ -351,7 +446,7 @@ fun CustomToolbarWithDateRange(
                     }
                 }
             }
-            
+
             // Loading overlay
             if (isLoading) {
                 Box(
@@ -445,7 +540,7 @@ fun CustomToolbarWithDateRange(
                 )
             }
         }
-        val context =LocalContext.current
+        val context = LocalContext.current
         if (showDateRangePicker) {
             DatePickerDialog(
                 onDismissRequest = { showDateRangePicker = false },
@@ -536,7 +631,11 @@ fun SmsTransactionsByDateScreen(
 ) {
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val grouped = transactions.groupBy { dateFormat.format(Date(it.messageTime)) }
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) {
                 Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -547,7 +646,12 @@ fun SmsTransactionsByDateScreen(
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             grouped.forEach { (date, txns) ->
                 item {
-                    Text(date, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 4.dp))
+                    Text(
+                        date,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
                 }
                 items(txns) { txn ->
                     Card(
@@ -557,12 +661,25 @@ fun SmsTransactionsByDateScreen(
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
-                            val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
+                            val dateTimeFormat = remember {
+                                SimpleDateFormat(
+                                    "MMM dd, yyyy, hh:mm a",
+                                    Locale.getDefault()
+                                )
+                            }
                             val dateTime = dateTimeFormat.format(Date(txn.messageTime))
                             Text("Amount: ₹${txn.amount}")
                             Text("Bank: ${txn.bankName}")
-                            Text("Date & Time: $dateTime", fontSize = 12.sp, color = ComposeColor.Gray)
-                            Text("Message: ${txn.rawMessage}", fontSize = 12.sp, color = ComposeColor.Gray)
+                            Text(
+                                "Date & Time: $dateTime",
+                                fontSize = 12.sp,
+                                color = ComposeColor.Gray
+                            )
+                            Text(
+                                "Message: ${txn.rawMessage}",
+                                fontSize = 12.sp,
+                                color = ComposeColor.Gray
+                            )
                         }
                     }
                 }
@@ -591,6 +708,7 @@ fun shiftDateRange(
         }
         return cal.timeInMillis
     }
+
     fun endOfDay(millis: Long): Long {
         val cal = Calendar.getInstance().apply {
             timeInMillis = millis
@@ -616,8 +734,8 @@ fun shiftDateRange(
         val newStart = startOfDay(cal.timeInMillis)
         val isToday = Calendar.getInstance().apply { timeInMillis = newStart }
             .get(Calendar.DAY_OF_YEAR) == Calendar.getInstance().get(Calendar.DAY_OF_YEAR) &&
-            Calendar.getInstance().apply { timeInMillis = newStart }
-                .get(Calendar.YEAR) == Calendar.getInstance().get(Calendar.YEAR)
+                Calendar.getInstance().apply { timeInMillis = newStart }
+                    .get(Calendar.YEAR) == Calendar.getInstance().get(Calendar.YEAR)
 
         val newEnd = if (isToday && preventFuture) now else endOfDay(newStart)
         return if (preventFuture && newEnd > now) {
@@ -664,7 +782,7 @@ fun SpendBarGraph(
     val amounts = days.map { day ->
         txnsByDay[day]?.sumOf { it.amount } ?: 0.0
     }
-    
+
     // Debug output
     LaunchedEffect(amounts) {
         println("SpendBarGraph days: $days")
@@ -672,25 +790,25 @@ fun SpendBarGraph(
         println("SpendBarGraph transactions: $transactions")
         println("SpendBarGraph dateRange: $dateRange")
     }
-    
+
     // Create chart entries for Vico
     val chartEntries = days.mapIndexed { index, day ->
         entryOf(index.toFloat(), amounts[index].toFloat())
     }
-    
+
     val chartEntryModel = entryModelOf(chartEntries)
-    
+
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
             text = "Spending (${mode.days} days)",
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp)
         )
-        
+
         if (amounts.all { it == 0.0 }) {
             Text(
-                "No spending data in this range", 
-                color = Color.Gray, 
+                "No spending data in this range",
+                color = Color.Gray,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         } else {
@@ -703,7 +821,7 @@ fun SpendBarGraph(
                     .fillMaxWidth()
                     .height(graphHeight)
             )
-            
+
             // Date labels below chart
             Row(
                 modifier = Modifier
@@ -728,12 +846,66 @@ fun SpendBarGraph(
 fun PreviewSpendBarGraph() {
     val now = System.currentTimeMillis()
     val dummyTransactions = listOf(
-        BankTransaction(1, 100.0, "HDFC", "Food", now - 6 * 24 * 60 * 60 * 1000, null, "Food", false),
-        BankTransaction(2, 200.0, "ICICI", "Travel", now - 5 * 24 * 60 * 60 * 1000, null, "Travel", false),
-        BankTransaction(3, 50.0, "SBI", "Cigarette", now - 4 * 24 * 60 * 60 * 1000, null, "Cigarette", false),
-        BankTransaction(4, 80.0, "Axis", "Food", now - 3 * 24 * 60 * 60 * 1000, null, "Food", false),
-        BankTransaction(5, 120.0, "Kotak", "Other", now - 2 * 24 * 60 * 60 * 1000, null, "Other", false),
-        BankTransaction(6, 60.0, "HDFC", "Food", now - 1 * 24 * 60 * 60 * 1000, null, "Food", false),
+        BankTransaction(
+            1,
+            100.0,
+            "HDFC",
+            "Food",
+            now - 6 * 24 * 60 * 60 * 1000,
+            null,
+            "Food",
+            false
+        ),
+        BankTransaction(
+            2,
+            200.0,
+            "ICICI",
+            "Travel",
+            now - 5 * 24 * 60 * 60 * 1000,
+            null,
+            "Travel",
+            false
+        ),
+        BankTransaction(
+            3,
+            50.0,
+            "SBI",
+            "Cigarette",
+            now - 4 * 24 * 60 * 60 * 1000,
+            null,
+            "Cigarette",
+            false
+        ),
+        BankTransaction(
+            4,
+            80.0,
+            "Axis",
+            "Food",
+            now - 3 * 24 * 60 * 60 * 1000,
+            null,
+            "Food",
+            false
+        ),
+        BankTransaction(
+            5,
+            120.0,
+            "Kotak",
+            "Other",
+            now - 2 * 24 * 60 * 60 * 1000,
+            null,
+            "Other",
+            false
+        ),
+        BankTransaction(
+            6,
+            60.0,
+            "HDFC",
+            "Food",
+            now - 1 * 24 * 60 * 60 * 1000,
+            null,
+            "Food",
+            false
+        ),
         BankTransaction(7, 90.0, "ICICI", "Travel", now, null, "Travel", false)
     )
     val dateRange = Pair(now - 6 * 24 * 60 * 60 * 1000, now)
@@ -742,7 +914,397 @@ fun PreviewSpendBarGraph() {
             transactions = dummyTransactions,
             dateRange = dateRange,
             mode = DateRangeMode.WEEKLY,
-            modifier = Modifier.fillMaxWidth().padding(16.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoadMainScreen(viewModel: MainViewModel) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var isLoading by remember { mutableStateOf(false) }
+    var roomTransactions by remember { mutableStateOf<List<BankTransaction>>(emptyList()) }
+    var showEditSheet by remember { mutableStateOf(false) }
+    var editId by remember { mutableStateOf<Int?>(null) }
+    var editAmount by remember { mutableStateOf("") }
+    var editType by remember { mutableStateOf("") }
+    var mode by remember { mutableStateOf(DateRangeMode.DAILY) }
+    val prefs = context.getSharedPreferences(CORE_NAME, MODE_PRIVATE)
+    var editingTransaction by remember { mutableStateOf<BankTransaction?>(null) }
+    var showDialog by remember { mutableStateOf(false) }
+    var prevRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+
+    var currentRange by remember {
+        val cal = Calendar.getInstance()
+        val end = cal.timeInMillis
+        cal.add(Calendar.DAY_OF_YEAR, -(mode.days - 1))
+        val start = cal.timeInMillis
+        mutableStateOf<Pair<Long, Long>>(start to end)
+    }
+    var smsTransactions by remember {
+        mutableStateOf<List<ParsedSmsTransaction>>(emptyList())
+    }
+
+    SamStudioAppTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            val db = Room.databaseBuilder(
+                context,
+                AppDatabase::class.java,
+                Constants.DB_NAME
+            ).build()
+            val dao = db.bankTransactionDao()
+
+            LaunchedEffect(Unit) {
+                val savedStart = prefs.getLong(RANGE_START, -1L)
+                val savedEnd = prefs.getLong(RANGE_END, -1L)
+                val savedMode = prefs.getString(RANGE_MODE, null)
+                if (savedStart > 0 && savedEnd > 0 && savedMode != null) {
+                    mode = DateRangeMode.valueOf(savedMode)
+                    currentRange = savedStart to savedEnd
+                }
+                // Todo: move to vm
+                val allTransactions = withContext(Dispatchers.IO) { dao.getAll() }
+                smsTransactions = allTransactions.map {
+                    ParsedSmsTransaction(
+                        amount = it.amount,
+                        bankName = it.bankName,
+                        messageTime = it.messageTime,
+                        rawMessage = it.tags
+                    )
+                }
+            }
+
+            // Move this outside the Column:
+            var selectedTabIndex by remember { mutableStateOf(0) }
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 12.dp, vertical = 24.dp)
+            ) {
+                // Filter smsTransactions by currentRange
+                val filteredSmsTransactions = smsTransactions.filter {
+                    val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+                    Log.d(
+                        "SamStudio",
+                        "currentRange: ${sdf.format(currentRange.first)} to ${
+                            sdf.format(currentRange.second)
+                        }"
+                    )
+                    Log.d("SamStudio", "txn: ${it.bankName} @ ${sdf.format(it.messageTime)}")
+                    it.messageTime in currentRange.first..currentRange.second
+                }
+
+                ToolbarWithDateRange(
+                    currentRange = currentRange,
+                    mode = mode,
+                    prevRange = prevRange,
+                    prefs = prefs,
+                    onPrevClick = {
+                        prevRange = currentRange
+                        val newRange = shiftDateRange(currentRange, mode, forward = false)
+                        currentRange = newRange
+                        prefs.edit {
+                            putLong("date_range_start", newRange.first)
+                            putLong("date_range_end", newRange.second)
+                            putString("date_range_mode", mode.name)
+                        }
+                    },
+                    onNextClick = {
+                        prevRange = currentRange
+                        val newRange = shiftDateRange(currentRange, mode, forward = true)
+                        currentRange = newRange
+                        prefs.edit {
+                            putLong("date_range_start", newRange.first)
+                            putLong("date_range_end", newRange.second)
+                            putString("date_range_mode", mode.name)
+                        }
+                    },
+                    onModeChange = { newMode ->
+                        mode = newMode
+                        val cal = java.util.Calendar.getInstance()
+                        val end = cal.timeInMillis
+                        cal.add(java.util.Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                        val start = cal.timeInMillis
+                        currentRange = start to end
+                        prefs.edit {
+                            putLong("date_range_start", start)
+                            putLong("date_range_end", end)
+                            putString("date_range_mode", newMode.name)
+                        }
+                    },
+                    onDatePickerChange = { start, end ->
+                        prevRange = currentRange
+                        // Patch: expand single-day range to full day
+                        val calStart =
+                            java.util.Calendar.getInstance().apply { timeInMillis = start }
+                        val calEnd =
+                            java.util.Calendar.getInstance().apply { timeInMillis = end }
+                        val isSameDay =
+                            calStart.get(java.util.Calendar.YEAR) == calEnd.get(java.util.Calendar.YEAR) &&
+                                    calStart.get(java.util.Calendar.DAY_OF_YEAR) == calEnd.get(
+                                java.util.Calendar.DAY_OF_YEAR
+                            )
+                        if (isSameDay) {
+                            calStart.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                            calStart.set(java.util.Calendar.MINUTE, 0)
+                            calStart.set(java.util.Calendar.SECOND, 0)
+                            calStart.set(java.util.Calendar.MILLISECOND, 0)
+                            calEnd.set(java.util.Calendar.HOUR_OF_DAY, 23)
+                            calEnd.set(java.util.Calendar.MINUTE, 59)
+                            calEnd.set(java.util.Calendar.SECOND, 59)
+                            calEnd.set(java.util.Calendar.MILLISECOND, 999)
+                        }
+                        val newStart = calStart.timeInMillis
+                        val newEnd = calEnd.timeInMillis
+                        currentRange = newStart to newEnd
+                        prefs.edit {
+                            putLong("date_range_start", newStart)
+                            putLong("date_range_end", newEnd)
+                            putString("date_range_mode", mode.name)
+                        }
+                    },
+                    onRefreshClick = {
+                        Log.d("SamStudio", "Refresh button clicked, isLoading: $isLoading")
+                        if (!isLoading) {
+                            val permissionGranted = ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.READ_SMS
+                            ) == PackageManager.PERMISSION_GRANTED
+
+                            Log.d("SamStudio", "SMS permission granted: $permissionGranted")
+
+                            if (permissionGranted) {
+                                coroutineScope.launch {
+                                    try {
+                                        Log.d("SamStudio", "Starting SMS parsing...")
+                                        isLoading = true
+                                        val parsed = withContext(Dispatchers.IO) {
+                                            readAndParseSms(context)
+                                        }
+                                        Log.d("SamStudio", "Parsed ${parsed.size} SMS messages")
+
+                                        // Save all as BankTransaction, ignore duplicates
+                                        parsed.forEach { sms ->
+                                            val txn = BankTransaction(
+                                                amount = sms.amount,
+                                                bankName = sms.bankName,
+                                                messageTime = sms.messageTime,
+                                                tags = sms.rawMessage,
+                                                count = null
+                                            )
+                                            try {
+                                                withContext(Dispatchers.IO) {
+                                                    dao.insert(txn)
+                                                }
+                                            } catch (e: Exception) {
+                                                Log.e(
+                                                    "SamStudio",
+                                                    "Insert error: ${e.message}"
+                                                )
+                                            }
+                                        }
+
+                                        val allTxns = withContext(Dispatchers.IO) {
+                                            dao.getAll()
+                                        }
+                                        Log.d(
+                                            "SamStudio",
+                                            "Retrieved ${allTxns.size} transactions from DB"
+                                        )
+
+                                        smsTransactions = allTxns.map {
+                                            ParsedSmsTransaction(
+                                                amount = it.amount,
+                                                bankName = it.bankName,
+                                                messageTime = it.messageTime,
+                                                rawMessage = it.tags
+                                            )
+                                        }
+                                        Log.d(
+                                            "SamStudio",
+                                            "Updated smsTransactions list with ${smsTransactions.size} items"
+                                        )
+                                        isLoading = false
+                                    } catch (e: Exception) {
+                                        Log.e(
+                                            "SamStudio",
+                                            "Error during refresh: ${e.message}",
+                                            e
+                                        )
+                                        isLoading = false
+                                    }
+                                }
+                            } else {
+                                Log.d("SamStudio", "Requesting SMS permission...")
+                              //  requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
+                            }
+                        } else {
+                            Log.d("SamStudio", "Already loading, ignoring refresh click")
+                        }
+                    },
+                    isLoading = isLoading,
+                    onAddDummyClick = {
+                        coroutineScope.launch {
+                            val dummyList = listOf(
+                                BankTransaction(
+                                    amount = 100.0,
+                                    bankName = "HDFC",
+                                    tags = "Food",
+                                    messageTime = System.currentTimeMillis()
+                                ),
+                                BankTransaction(
+                                    amount = 200.0,
+                                    bankName = "ICICI",
+                                    tags = "Travel",
+                                    messageTime = System.currentTimeMillis()
+                                ),
+                                BankTransaction(
+                                    amount = 50.0,
+                                    bankName = "SBI",
+                                    tags = "Cigarette",
+                                    messageTime = System.currentTimeMillis()
+                                ),
+                                BankTransaction(
+                                    amount = 80.0,
+                                    bankName = "Axis",
+                                    tags = "Food",
+                                    messageTime = System.currentTimeMillis()
+                                ),
+                                BankTransaction(
+                                    amount = 120.0,
+                                    bankName = "Kotak",
+                                    tags = "Other",
+                                    messageTime = System.currentTimeMillis()
+                                )
+                            )
+                            dummyList.forEach { dao.insert(it) }
+                            roomTransactions =
+                                withContext(Dispatchers.IO) { dao.getAll() }
+                        }
+                    },
+                    smsTransactions = smsTransactions,
+                    bankTransactions = roomTransactions,
+                    onEdit = { editingTransaction = it; showDialog = true }
+                )
+
+                MainTabs(
+                    selectedTabIndex = selectedTabIndex,
+                    onTabSelected = { selectedTabIndex = it })
+
+                // Tab content
+                MainTabContent(
+                    selectedTabIndex = selectedTabIndex,
+                    roomTransactions = roomTransactions,
+                    currentRange = currentRange,
+                    mode = mode,
+                    categories = categories,
+                    onEditClick = { categoryName, subType ->
+                        editId = subType.id
+                        editAmount = subType.amount.toString()
+                        editType = categoryName
+                        showEditSheet = true
+                    }
+                )
+            }
+            // Show bottom sheet for editing (must be inside setContent)
+            if (showEditSheet && editId != null) {
+                ModalBottomSheet(
+                    onDismissRequest = { showEditSheet = false }
+                ) {
+                    Column(Modifier.padding(24.dp)) {
+                        Text("Edit Transaction", style = MaterialTheme.typography.titleLarge)
+                        Spacer(Modifier.height(16.dp))
+                        androidx.compose.material3.OutlinedTextField(
+                            value = editAmount,
+                            onValueChange = {
+                                editAmount = it.filter { ch -> ch.isDigit() || ch == '.' }
+                            },
+                            label = { Text("Amount") },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Number
+                            ),
+                            singleLine = true
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        val typeOptions = categories.map { it.first }
+                        var expanded by remember { mutableStateOf(false) }
+                        androidx.compose.material3.ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = !expanded }
+                        ) {
+                            androidx.compose.material3.OutlinedTextField(
+                                value = editType,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Type") },
+                                trailingIcon = { Icons.Filled.KeyboardArrowDown },
+                                modifier = Modifier
+                                    .width(180.dp)
+                                    .menuAnchor()
+                                    .clickable { expanded = true }
+                            )
+                            androidx.compose.material3.DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                typeOptions.forEach { type ->
+                                    androidx.compose.material3.DropdownMenuItem(
+                                        text = { Text(type) },
+                                        onClick = {
+                                            editType = type
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            TextButton(onClick = { showEditSheet = false }) { Text("Cancel") }
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = {
+                                val amt = editAmount.toDoubleOrNull()
+                                if (amt != null && editType.isNotBlank() && editId != null) {
+                                    coroutineScope.launch {
+                                        val txn = roomTransactions.find { it.id == editId }
+                                        if (txn != null) {
+                                            val updatedTxn =
+                                                txn.copy(amount = amt, tags = editType)
+                                            viewModel.updateTransaction(updatedTxn)
+                                            roomTransactions =
+                                                withContext(Dispatchers.IO) { dao.getAll() }
+                                        }
+                                        showEditSheet = false
+                                    }
+                                }
+                            }) { Text("Save") }
+                        }
+                    }
+                }
+            }
+
+            if (showDialog) {
+                EditTransactionDialog(
+                    transaction = editingTransaction,
+                    onDismiss = { showDialog = false },
+                    onSave = {
+                        if (it.id == 0) viewModel.addTransaction(it) else viewModel.updateTransaction(
+                            it
+                        )
+                        showDialog = false
+                    }
+                )
+            }
+        }
     }
 }
