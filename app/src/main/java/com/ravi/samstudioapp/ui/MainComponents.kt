@@ -239,7 +239,7 @@ fun CustomToolbarWithDateRange(
             contentPadding = 4.dp
         ) {
             Column(
-                modifier = Modifier.padding(4.dp)
+                modifier = Modifier.padding(12.dp)
             ) {
                 // Top Row - Title and Action Buttons
                 Row(
@@ -250,7 +250,7 @@ fun CustomToolbarWithDateRange(
                     // App Title
                     Text(
                         text = title,
-                        style = MaterialTheme.typography.headlineSmall.copy(
+                        style = MaterialTheme.typography.titleSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
                         color = LightGray
@@ -1097,7 +1097,7 @@ fun TransactionList(
             val isSelected = selectedCategory == category
             NeumorphicBorderBox(
                 modifier = Modifier.padding(horizontal = 4.dp),
-                cornerRadius = 16.dp,
+                cornerRadius = 4.dp,
                 backgroundColor = if (isSelected) DarkGray else Black,
                 borderColor = if (isSelected) LightGray else Color.White.copy(alpha = 0.10f),
                 shadowElevation = if (isSelected) 4.dp else 2.dp,
