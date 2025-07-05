@@ -58,6 +58,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.material3.Divider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -104,6 +105,11 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.RepeatMode
 import com.ravi.samstudioapp.utils.PermissionManager
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
 
 
 // Add DateRangeMode enum at the top level
@@ -221,234 +227,239 @@ fun CustomToolbarWithDateRange(
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
     val context = LocalContext.current
-    val formattedRange = currentRange.let { (start, end) ->
-        run {
-            val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-            "${formatter.format(Date(start))} - ${formatter.format(Date(end))}"
-        }
+    
+    // Memoize formatted range to prevent recalculation
+    val formattedRange = remember(currentRange) {
+        val (start, end) = currentRange
+        val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        "${formatter.format(Date(start))} - ${formatter.format(Date(end))}"
     }
 
-    Column(modifier = modifier) {
-        // Main Toolbar Card with Neumorphic Design
-        NeumorphicBorderBox(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 8.dp, vertical = 8.dp),
-            cornerRadius = 4.dp,
-            backgroundColor = Black,
-            borderColor = Color.White.copy(alpha = 0.10f),
-            shadowElevation = 8.dp,
-            contentPadding = 4.dp
+    // Memoize animation state to prevent recreation
+    val rotationAnimation by rememberInfiniteTransition().animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        // Toolbar Row
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.small,
+            colors = CardDefaults.cardColors(
+                containerColor = DarkGray
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(12.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Top Row - Title and Action Buttons
+                // Title
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = LightGray
+                )
+
+                // Action Buttons Row
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // App Title
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = LightGray
-                    )
-                    // Action Buttons Row (all use dark gray)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    // Insights Button
+                    NeumorphicBorderBox(
+                        modifier = Modifier.size(40.dp),
+                        cornerRadius = 4.dp,
+                        backgroundColor = DarkGray,
+                        borderColor = Color.White.copy(alpha = 0.10f),
+                        shadowElevation = 2.dp,
+                        contentPadding = 0.dp
                     ) {
-                        // Insights Button
-                        NeumorphicBorderBox(
-                            modifier = Modifier.size(40.dp),
-                            cornerRadius = 4.dp,
-                            backgroundColor = DarkGray,
-                            borderColor = Color.White.copy(alpha = 0.10f),
-                            shadowElevation = 2.dp,
-                            contentPadding = 0.dp
+                        IconButton(
+                            onClick = onInsightsClick,
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            IconButton(
-                                onClick = onInsightsClick,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    Icons.Filled.Analytics,
-                                    contentDescription = "Insights",
-                                    tint = LightGray,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
+                            Icon(
+                                Icons.Filled.Analytics,
+                                contentDescription = "Insights",
+                                tint = LightGray,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                        // Refresh Button
-                        NeumorphicBorderBox(
-                            modifier = Modifier.size(40.dp),
-                            cornerRadius = 4.dp,
-                            backgroundColor = DarkGray,
-                            borderColor = Color.White.copy(alpha = 0.10f),
-                            shadowElevation = 2.dp,
-                            contentPadding = 0.dp
+                    }
+                    
+                    // Refresh Button
+                    NeumorphicBorderBox(
+                        modifier = Modifier.size(40.dp),
+                        cornerRadius = 4.dp,
+                        backgroundColor = DarkGray,
+                        borderColor = Color.White.copy(alpha = 0.10f),
+                        shadowElevation = 2.dp,
+                        contentPadding = 0.dp
+                    ) {
+                        IconButton(
+                            onClick = onRefreshClick,
+                            enabled = !isLoading,
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            IconButton(
-                                onClick = onRefreshClick,
-                                enabled = !isLoading,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                if (isLoading) {
-                                    androidx.compose.animation.core.animateFloatAsState(
-                                        targetValue = 360f,
-                                        animationSpec = androidx.compose.animation.core.tween(1000)
-                                    ).value.let { rotation ->
-                                        Icon(
-                                            Icons.Filled.Refresh,
-                                            contentDescription = "Syncing...",
-                                            tint = LightGray,
-                                            modifier = Modifier
-                                                .size(20.dp)
-                                                .graphicsLayer(rotationZ = rotation)
-                                        )
-                                    }
-                                } else {
-                                    Icon(
-                                        Icons.Filled.Refresh,
-                                        contentDescription = "Refresh",
-                                        tint = LightGray,
-                                        modifier = Modifier.size(20.dp)
+                            Icon(
+                                Icons.Filled.Refresh,
+                                contentDescription = if (isLoading) "Syncing..." else "Refresh",
+                                tint = LightGray,
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .graphicsLayer(
+                                        rotationZ = if (isLoading) rotationAnimation else 0f
                                     )
-                                }
-                            }
+                            )
                         }
-                        // Mode Toggle Button
-                        NeumorphicBorderBox(
-                            modifier = Modifier.size(40.dp),
-                            cornerRadius = 4.dp,
-                            backgroundColor = DarkGray,
-                            borderColor = Color.White.copy(alpha = 0.10f),
-                            shadowElevation = 2.dp,
-                            contentPadding = 0.dp
+                    }
+                    
+                    // Mode Toggle Button
+                    NeumorphicBorderBox(
+                        modifier = Modifier.size(40.dp),
+                        cornerRadius = 4.dp,
+                        backgroundColor = DarkGray,
+                        borderColor = Color.White.copy(alpha = 0.10f),
+                        shadowElevation = 2.dp,
+                        contentPadding = 0.dp
+                    ) {
+                        IconButton(
+                            onClick = {
+                                val newMode = when (mode) {
+                                    DateRangeMode.DAILY -> DateRangeMode.WEEKLY
+                                    DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
+                                    DateRangeMode.MONTHLY -> DateRangeMode.DAILY
+                                }
+                                onModeChange(newMode)
+                                val cal = Calendar.getInstance()
+                                val end = cal.timeInMillis
+                                cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                                val start = cal.timeInMillis
+                                onDatePickerChange(start, end)
+                                Toast.makeText(
+                                    context,
+                                    "Range changed to ${newMode.days} days",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            },
+                            modifier = Modifier.fillMaxSize()
                         ) {
-                            IconButton(
-                                onClick = {
-                                    val newMode = when (mode) {
-                                        DateRangeMode.DAILY -> DateRangeMode.WEEKLY
-                                        DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
-                                        DateRangeMode.MONTHLY -> DateRangeMode.DAILY
-                                    }
-                                    onModeChange(newMode)
-                                    val cal = Calendar.getInstance()
-                                    val end = cal.timeInMillis
-                                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-                                    val start = cal.timeInMillis
-                                    onDatePickerChange(start, end)
-                                    Toast.makeText(
-                                        context,
-                                        "Range changed to ${newMode.days} days",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                },
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Text(
-                                    text = mode.days.toString(),
-                                    color = LightGray,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
+                            Text(
+                                text = mode.days.toString(),
+                                color = LightGray,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                // Date Range Row with Neumorphic Design
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Date Range Row with Neumorphic Design
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.small,
+            colors = CardDefaults.cardColors(
+                containerColor = DarkGray
+            ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Previous Button
+                NeumorphicBorderBox(
+                    modifier = Modifier.size(36.dp),
+                    cornerRadius = 4.dp,
+                    backgroundColor = Black,
+                    borderColor = Color.White.copy(alpha = 0.10f),
+                    shadowElevation = 2.dp,
+                    contentPadding = 0.dp
+                ) {
+                    IconButton(
+                        onClick = onPrevClick,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Icon(
+                            Icons.Filled.ArrowBack,
+                            contentDescription = "Previous",
+                            tint = LightGray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+                
+                // Date Range Display
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 12.dp),
                     shape = MaterialTheme.shapes.small,
                     colors = CardDefaults.cardColors(
                         containerColor = DarkGray
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Row(
+                    Text(
+                        text = formattedRange,
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = LightGray,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                            .clickable { showDateRangePicker = true },
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+                
+                // Next Button
+                NeumorphicBorderBox(
+                    modifier = Modifier.size(36.dp),
+                    cornerRadius = 4.dp,
+                    backgroundColor = Black,
+                    borderColor = Color.White.copy(alpha = 0.10f),
+                    shadowElevation = 2.dp,
+                    contentPadding = 0.dp
+                ) {
+                    IconButton(
+                        onClick = onNextClick,
+                        modifier = Modifier.fillMaxSize()
                     ) {
-                        // Previous Button
-                        NeumorphicBorderBox(
-                            modifier = Modifier.size(36.dp),
-                            cornerRadius = 4.dp,
-                            backgroundColor = if (/* is selected or active */ false) DarkGray else Black,
-                            borderColor = Color.White.copy(alpha = 0.10f),
-                            shadowElevation = 2.dp,
-                            contentPadding = 0.dp
-                        ) {
-                            IconButton(
-                                onClick = onPrevClick,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    Icons.Filled.ArrowBack,
-                                    contentDescription = "Previous",
-                                    tint = LightGray,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                        // Date Range Display
-                        Card(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(horizontal = 12.dp),
-                            shape = MaterialTheme.shapes.small,
-                            colors = CardDefaults.cardColors(
-                                containerColor = DarkGray
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                        ) {
-                            Text(
-                                text = formattedRange,
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                color = LightGray,
-                                modifier = Modifier
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                                    .clickable { showDateRangePicker = true },
-                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                            )
-                        }
-                        // Next Button
-                        NeumorphicBorderBox(
-                            modifier = Modifier.size(36.dp),
-                            cornerRadius = 4.dp,
-                            backgroundColor = if (/* is selected or active */ false) DarkGray else Black,
-                            borderColor = Color.White.copy(alpha = 0.10f),
-                            shadowElevation = 2.dp,
-                            contentPadding = 0.dp
-                        ) {
-                            IconButton(
-                                onClick = onNextClick,
-                                modifier = Modifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    Icons.Filled.ArrowForward,
-                                    contentDescription = "Next",
-                                    tint = LightGray,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
+                        Icon(
+                            Icons.Filled.ArrowForward,
+                            contentDescription = "Next",
+                            tint = LightGray,
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
         }
     }
+    
     // Date Range Picker Dialog
     if (showDateRangePicker) {
         DatePickerDialog(
@@ -903,21 +914,28 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                         Log.d("SamStudio", "UI: Refresh button clicked, isLoading: $isLoading")
                         Log.d("SamStudio", "UI: About to check SMS permission")
                         if (!isLoading) {
-                            val permissionGranted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.READ_SMS
-                            ) == PackageManager.PERMISSION_GRANTED
-
-                            Log.d("SamStudio", "UI: SMS permission granted: $permissionGranted")
-
-                            if (permissionGranted) {
-                                Log.d("SamStudio", "UI: Permission granted, calling viewModel.syncFromSms")
+                            // Check cached permission state first
+                            if (PermissionManager.isSmsPermissionGranted()) {
+                                Log.d("SamStudio", "UI: Permission already granted, starting sync")
                                 viewModel.syncFromSms(context)
-                                Log.d("SamStudio", "UI: viewModel.syncFromSms called successfully")
                             } else {
-                                Log.d("SamStudio", "UI: Permission not granted, requesting SMS permission...")
-                                PermissionManager.requestSmsPermission()
-                                Log.d("SamStudio", "UI: Permission request launched")
+                                // Check actual permission status
+                                val permissionGranted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.READ_SMS
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                Log.d("SamStudio", "UI: SMS permission granted: $permissionGranted")
+
+                                if (permissionGranted) {
+                                    Log.d("SamStudio", "UI: Permission granted, calling viewModel.syncFromSms")
+                                    viewModel.syncFromSms(context)
+                                    Log.d("SamStudio", "UI: viewModel.syncFromSms called successfully")
+                                } else {
+                                    Log.d("SamStudio", "UI: Permission not granted, requesting SMS permission...")
+                                    PermissionManager.requestSmsPermission()
+                                    Log.d("SamStudio", "UI: Permission request launched")
+                                }
                             }
                         } else {
                             Log.d("SamStudio", "UI: Already loading, ignoring refresh click")
@@ -960,19 +978,22 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    androidx.compose.animation.core.animateFloatAsState(
+                                    val rotationAnimation by rememberInfiniteTransition().animateFloat(
+                                        initialValue = 0f,
                                         targetValue = 360f,
-                                        animationSpec = androidx.compose.animation.core.tween(1000)
-                                    ).value.let { rotation ->
-                                        Icon(
-                                            Icons.Filled.Refresh,
-                                            contentDescription = "Syncing...",
-                                            tint = LightGray,
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .graphicsLayer(rotationZ = rotation)
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(1000, easing = LinearEasing),
+                                            repeatMode = RepeatMode.Restart
                                         )
-                                    }
+                                    )
+                                    Icon(
+                                        Icons.Filled.Refresh,
+                                        contentDescription = "Syncing...",
+                                        tint = LightGray,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .graphicsLayer(rotationZ = rotationAnimation)
+                                    )
                                     Spacer(modifier = Modifier.height(16.dp))
                                     Text(
                                         text = "Syncing SMS transactions...",
@@ -1129,7 +1150,6 @@ fun TransactionList(
     var editType by remember { mutableStateOf("") }
     var editBankName by remember { mutableStateOf("") }
     var editCategory by remember { mutableStateOf("Other") }
-    var expanded by remember { mutableStateOf(false) }
 
     // Keep edit fields in sync with editingTxn
     LaunchedEffect(editingTxn) {
@@ -1143,116 +1163,110 @@ fun TransactionList(
 
     // Filter chips row
     var selectedCategory by remember { mutableStateOf<CategoryDef?>(null) }
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(rememberScrollState())
-            .padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        categoryDefs.forEach { category ->
-            val isSelected = selectedCategory == category
-            NeumorphicBorderBox(
-                modifier = Modifier.padding(horizontal = 4.dp),
-                cornerRadius = 4.dp,
-                backgroundColor = if (isSelected) DarkGray else Black,
-                borderColor = if (isSelected) LightGray else Color.White.copy(alpha = 0.10f),
-                shadowElevation = if (isSelected) 4.dp else 2.dp,
-                contentPadding = 8.dp
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { selectedCategory = if (isSelected) null else category }
+    
+    // Memoize expensive operations
+    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
+    
+    val filteredTxns = remember(smsTransactions, selectedCategory) {
+        selectedCategory?.let { cat -> smsTransactions.filter { cat.matcher(it) } }
+            ?: smsTransactions
+    }
+    
+    val grouped = remember(filteredTxns, dateFormat) {
+        filteredTxns.groupBy { dateFormat.format(Date(it.messageTime)) }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Filter chips row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            categoryDefs.forEach { category ->
+                val isSelected = selectedCategory == category
+                NeumorphicBorderBox(
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    cornerRadius = 4.dp,
+                    backgroundColor = if (isSelected) DarkGray else Black,
+                    borderColor = if (isSelected) LightGray else Color.White.copy(alpha = 0.10f),
+                    shadowElevation = if (isSelected) 4.dp else 2.dp,
+                    contentPadding = 8.dp
                 ) {
-                    Icon(category.icon, contentDescription = category.name, tint = LightGray)
-                    Spacer(Modifier.width(6.dp))
-                    Text(category.name, color = LightGray)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable { selectedCategory = if (isSelected) null else category }
+                    ) {
+                        Icon(category.icon, contentDescription = category.name, tint = LightGray)
+                        Spacer(Modifier.width(6.dp))
+                        Text(category.name, color = LightGray)
+                    }
                 }
             }
         }
-    }
-    Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-    // Grouped LazyColumn for smsTransactions, filtered by selected chip
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val filteredTxns =
-        selectedCategory?.let { cat -> smsTransactions.filter { cat.matcher(it) } }
-            ?: smsTransactions
-    val grouped = filteredTxns.groupBy { dateFormat.format(Date(it.messageTime)) }
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
-            grouped.forEach { (date, txns) ->
-                item {
-                    Text(
-                        date,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
-                        color = ComposeColor.White
-                    )
-                }
-                items(txns) { txn ->
-                    val bankTxn =
-                        bankTransactions.find { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp, horizontal = 8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        shape = MaterialTheme.shapes.medium,
-                        colors = CardDefaults.cardColors(containerColor = DarkGray)
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            val dateTimeFormat = remember {
-                                SimpleDateFormat(
-                                    "MMM dd, yyyy, hh:mm a",
-                                    Locale.getDefault()
-                                )
+        // Grouped LazyColumn for smsTransactions, filtered by selected chip
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                grouped.forEach { (date, txns) ->
+                    item {
+                        Text(
+                            date,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
+                            color = ComposeColor.White
+                        )
+                    }
+                    items(txns) { txn ->
+                        val bankTxn = remember(txn, bankTransactions) {
+                            bankTransactions.find { 
+                                it.amount == txn.amount && 
+                                it.bankName == txn.bankName && 
+                                it.messageTime == txn.messageTime 
                             }
-                            val dateTime = dateTimeFormat.format(Date(txn.messageTime))
-                            Text("Amount: ₹${txn.amount}", color = LightGray)
-                            Text("Bank: ${txn.bankName}", color = LightGray)
-                            Text(
-                                "Message: ${txn.rawMessage}",
-                                fontSize = 12.sp,
-                                color = LightGray.copy(alpha = 0.6f)
-                            )
-                            // Show category as a chip
-                            val catName = bankTxn?.category ?: "Other"
-                            val catDef =
-                                categoryDefs.find { it.name.equals(catName, ignoreCase = true) }
-                                    ?: categoryDefs.last()
-                            Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
-                                AssistChip(
-                                    onClick = {},
-                                    label = { Text(catDef.name, color = LightGray) },
-                                    leadingIcon = {
-                                        Icon(
-                                            catDef.icon,
-                                            contentDescription = catDef.name,
-                                            tint = LightGray
-                                        )
-                                    },
-                                    colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = Black,
-                                        labelColor = LightGray
-                                    ),
-                                    border = BorderStroke(1.dp, LightGray)
+                        }
+                        
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp, horizontal = 8.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            shape = MaterialTheme.shapes.medium,
+                            colors = CardDefaults.cardColors(containerColor = DarkGray)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                val dateTime = remember(txn.messageTime, dateTimeFormat) {
+                                    dateTimeFormat.format(Date(txn.messageTime))
+                                }
+                                
+                                Text("Amount: ₹${txn.amount}", color = LightGray)
+                                Text("Bank: ${txn.bankName}", color = LightGray)
+                                Text(
+                                    "Message: ${txn.rawMessage}",
+                                    fontSize = 12.sp,
+                                    color = LightGray.copy(alpha = 0.6f)
                                 )
-                                if (bankTxn?.verified == true) {
-                                    Spacer(Modifier.width(8.dp))
+                                
+                                // Show category as a chip
+                                val catName = bankTxn?.category ?: "Other"
+                                val catDef = remember(catName) {
+                                    categoryDefs.find { it.name.equals(catName, ignoreCase = true) }
+                                        ?: categoryDefs.last()
+                                }
+                                
+                                Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                                     AssistChip(
                                         onClick = {},
-                                        label = {
-                                            Text(
-                                                "Verified",
-                                                color = LightGray,
-                                            )
-                                        },
+                                        label = { Text(catDef.name, color = LightGray) },
                                         leadingIcon = {
                                             Icon(
-                                                Icons.Filled.Check,
-                                                contentDescription = "Verified",
+                                                catDef.icon,
+                                                contentDescription = catDef.name,
                                                 tint = LightGray
                                             )
                                         },
@@ -1262,111 +1276,174 @@ fun TransactionList(
                                         ),
                                         border = BorderStroke(1.dp, LightGray)
                                     )
+                                    if (bankTxn?.verified == true) {
+                                        Spacer(Modifier.width(8.dp))
+                                        AssistChip(
+                                            onClick = {},
+                                            label = {
+                                                Text(
+                                                    "Verified",
+                                                    color = LightGray,
+                                                )
+                                            },
+                                            leadingIcon = {
+                                                Icon(
+                                                    Icons.Filled.Check,
+                                                    contentDescription = "Verified",
+                                                    tint = LightGray
+                                                )
+                                            },
+                                            colors = AssistChipDefaults.assistChipColors(
+                                                containerColor = Black,
+                                                labelColor = LightGray
+                                            ),
+                                            border = BorderStroke(1.dp, LightGray)
+                                        )
+                                    }
                                 }
-                            }
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(top = 8.dp),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                Text(
-                                    text = dateTime,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = LightGray,
+                                
+                                Row(
                                     modifier = Modifier
-                                        .background(Black, shape = MaterialTheme.shapes.small)
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
+                                        .fillMaxWidth()
+                                        .padding(top = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = dateTime,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = LightGray,
+                                        modifier = Modifier
+                                            .background(Black, shape = MaterialTheme.shapes.small)
+                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                    
+                                    // Edit button - only show if there's a matching bank transaction
+                                    bankTxn?.let { transaction ->
+                                        IconButton(
+                                            onClick = { editingTxn = transaction },
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Edit,
+                                                contentDescription = "Edit Transaction",
+                                                tint = LightGray,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-        }
 
-        // Edit dialog
-        if (editingTxn != null) {
-            AlertDialog(
-                onDismissRequest = { editingTxn = null },
-                title = { Text("Edit Transaction") },
-                text = {
-                    Column {
-                        OutlinedTextField(
-                            value = editAmount,
-                            onValueChange = { editAmount = it },
-                            label = { Text("Amount") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = editType,
-                            onValueChange = { editType = it },
-                            label = { Text("Type") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = editBankName,
-                            onValueChange = { editBankName = it },
-                            label = { Text("Bank") },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(Modifier.height(8.dp))
-                        ExposedDropdownMenuBox(
-                            expanded = expanded,
-                            onExpandedChange = { expanded = !expanded }
-                        ) {
+            // Edit dialog
+            if (editingTxn != null) {
+                AlertDialog(
+                    onDismissRequest = { editingTxn = null },
+                    title = { Text("Edit Transaction") },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = editAmount,
+                                onValueChange = { editAmount = it },
+                                label = { Text("Amount") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editType,
+                                onValueChange = { editType = it },
+                                label = { Text("Type") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editBankName,
+                                onValueChange = { editBankName = it },
+                                label = { Text("Bank") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            // Simplified dropdown to avoid coroutine issues
+                            var showCategoryDropdown by remember { mutableStateOf(false) }
+                            
                             OutlinedTextField(
                                 value = editCategory,
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("Category") },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                trailingIcon = { 
+                                    Icon(
+                                        Icons.Filled.KeyboardArrowDown,
+                                        contentDescription = "Select Category",
+                                        modifier = Modifier.clickable { showCategoryDropdown = !showCategoryDropdown }
+                                    )
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .menuAnchor()
+                                    .clickable { showCategoryDropdown = !showCategoryDropdown }
                             )
-                            ExposedDropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                listOf("Food", "Travel", "Cigarette", "Other").forEach { category ->
-                                    DropdownMenuItem(
-                                        text = { Text(category) },
-                                        onClick = {
-                                            editCategory = category
-                                            expanded = false
+                            
+                            if (showCategoryDropdown) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                                ) {
+                                    Column {
+                                        categoryDefs.forEach { category ->
+                                            Text(
+                                                text = category.name,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        editCategory = category.name
+                                                        showCategoryDropdown = false
+                                                    }
+                                                    .padding(16.dp),
+                                                color = if (editCategory == category.name) 
+                                                    MaterialTheme.colorScheme.primary 
+                                                else 
+                                                    MaterialTheme.colorScheme.onSurface
+                                            )
+                                            if (category != categoryDefs.last()) {
+                                                Divider()
+                                            }
                                         }
-                                    )
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = {
-                        editingTxn?.let { txn ->
-                            val updatedTxn = txn.copy(
-                                amount = editAmount.toDoubleOrNull() ?: txn.amount,
-                                tags = editType,
-                                bankName = editBankName,
-                                category = editCategory
-                            )
-                            onEdit(updatedTxn)
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            editingTxn?.let { txn ->
+                                val updatedTxn = txn.copy(
+                                    amount = editAmount.toDoubleOrNull() ?: txn.amount,
+                                    tags = editType,
+                                    bankName = editBankName,
+                                    category = editCategory
+                                )
+                                onEdit(updatedTxn)
+                            }
+                            editingTxn = null
+                        }) {
+                            Text("Save")
                         }
-                        editingTxn = null
-                    }) {
-                        Text("Save")
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { editingTxn = null }) {
+                            Text("Cancel")
+                        }
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { editingTxn = null }) {
-                        Text("Cancel")
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }

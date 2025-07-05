@@ -29,18 +29,20 @@ class MainActivity : ComponentActivity() {
     
     private fun setupSmsPermissionLauncher() {
         Log.d("SamStudio", "MainActivity: Setting up SMS permission launcher")
+        
+        // Set up callback for when permission is granted
+        PermissionManager.setOnPermissionGrantedCallback {
+            Log.d("SamStudio", "MainActivity: Permission granted callback triggered, starting sync")
+            viewModel.syncFromSms(this@MainActivity)
+        }
+        
         requestSmsPermissionLauncher = registerForActivityResult(
             androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             Log.d("SamStudio", "MainActivity: SMS permission result: $isGranted")
-            if (isGranted) {
-                Log.d("SamStudio", "MainActivity: SMS permission granted, can now sync")
-                // Optionally trigger sync automatically when permission is granted
-                // viewModel.syncFromSms(this@MainActivity)
-            } else {
-                Log.d("SamStudio", "MainActivity: SMS permission denied")
-            }
+            PermissionManager.handlePermissionResult(isGranted)
         }
+        
         // Register with central PermissionManager
         PermissionManager.setSmsPermissionLauncher(requestSmsPermissionLauncher)
         Log.d("SamStudio", "MainActivity: SMS permission launcher registered with PermissionManager")

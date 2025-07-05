@@ -16,6 +16,8 @@ object SharedPreference {
 
 object PermissionManager {
     private var smsPermissionLauncher: ActivityResultLauncher<String>? = null
+    private var smsPermissionGranted: Boolean = false
+    private var onPermissionGrantedCallback: (() -> Unit)? = null
     
     fun setSmsPermissionLauncher(launcher: ActivityResultLauncher<String>) {
         Log.d("SamStudio", "PermissionManager: Setting SMS permission launcher")
@@ -24,6 +26,24 @@ object PermissionManager {
     
     fun getSmsPermissionLauncher(): ActivityResultLauncher<String>? {
         return smsPermissionLauncher
+    }
+    
+    fun isSmsPermissionGranted(): Boolean {
+        return smsPermissionGranted
+    }
+    
+    fun setOnPermissionGrantedCallback(callback: () -> Unit) {
+        Log.d("SamStudio", "PermissionManager: Setting permission granted callback")
+        onPermissionGrantedCallback = callback
+    }
+    
+    fun handlePermissionResult(isGranted: Boolean) {
+        Log.d("SamStudio", "PermissionManager: Handling permission result: $isGranted")
+        smsPermissionGranted = isGranted
+        if (isGranted) {
+            Log.d("SamStudio", "PermissionManager: Permission granted, executing callback")
+            onPermissionGrantedCallback?.invoke()
+        }
     }
     
     fun requestSmsPermission() {
