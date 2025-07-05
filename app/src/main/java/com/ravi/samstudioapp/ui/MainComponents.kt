@@ -700,12 +700,15 @@ fun LoadMainScreen(viewModel: MainViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
-        ) {
+                .background( MaterialTheme.colorScheme.surface)
+//                    containerColor = MaterialTheme.colorScheme.surface,
+//            contentColor = MaterialTheme.colorScheme.onSurface,
+
+            ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
+                    //.background(MaterialTheme.colorScheme.background)
                     .padding(horizontal = 12.dp, vertical = 24.dp)
             ) {
                 ToolbarWithDateRange(
