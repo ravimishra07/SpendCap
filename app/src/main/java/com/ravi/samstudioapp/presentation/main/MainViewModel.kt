@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.LaunchedEffect
 import java.util.Calendar
+import android.util.Log
 
 class MainViewModel(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
@@ -121,22 +122,27 @@ class MainViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val smsTxns = readAndParseSms(context)
-                smsTxns.forEach { sms ->
-                    val txn = BankTransaction(
+                val smsTxns = withContext(Dispatchers.IO) { readAndParseSms(context) }
+                val existing = withContext(Dispatchers.IO) { getAllTransactions() }
+                val newTxns = smsTxns.map { sms ->
+                    BankTransaction(
                         amount = sms.amount,
                         bankName = sms.bankName,
                         messageTime = sms.messageTime,
                         tags = sms.rawMessage,
                         count = null
                     )
-                    insertTransaction(txn)
+                }.filter { txn ->
+                    existing.none { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
                 }
+                // Batch insert if possible, else insert one by one
+                newTxns.forEach { txn -> withContext(Dispatchers.IO) { insertTransaction(txn) } }
                 loadAllTransactions()
                 loadSmsTransactions()
                 updateFilteredSmsTransactions()
             } catch (e: Exception) {
-                // Handle error
+                Log.e("syncFromSms", "Error syncing SMS", e)
+                // Optionally update an error state or show a Toast
             } finally {
                 _isLoading.value = false
             }
