@@ -1,6 +1,7 @@
 package com.ravi.samstudioapp.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Context.MODE_PRIVATE
 import android.content.pm.PackageManager
 import android.util.Log
@@ -76,6 +77,7 @@ import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -86,25 +88,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import androidx.room.Room
 import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
-import com.ravi.samstudioapp.data.AppDatabase
 import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
 import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.utils.Constants
-import com.ravi.samstudioapp.utils.SharedPreference.CORE_NAME
-import com.ravi.samstudioapp.utils.SharedPreference.RANGE_END
-import com.ravi.samstudioapp.utils.SharedPreference.RANGE_MODE
-import com.ravi.samstudioapp.utils.SharedPreference.RANGE_START
-import com.ravi.samstudioapp.utils.readAndParseSms
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
+
+
 
 // Add DateRangeMode enum at the top level
 enum class DateRangeMode(val days: Int) {
@@ -925,30 +920,25 @@ fun PreviewSpendBarGraph() {
 @Composable
 fun LoadMainScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
 
-    var isLoading by remember { mutableStateOf(false) }
-    var roomTransactions by remember { mutableStateOf<List<BankTransaction>>(emptyList()) }
+    // UI state only
     var showEditSheet by remember { mutableStateOf(false) }
     var editId by remember { mutableStateOf<Int?>(null) }
     var editAmount by remember { mutableStateOf("") }
     var editType by remember { mutableStateOf("") }
-    var mode by remember { mutableStateOf(DateRangeMode.DAILY) }
-    val prefs = context.getSharedPreferences(CORE_NAME, MODE_PRIVATE)
     var editingTransaction by remember { mutableStateOf<BankTransaction?>(null) }
     var showDialog by remember { mutableStateOf(false) }
-    var prevRange by remember { mutableStateOf<Pair<Long, Long>?>(null) }
+    var selectedTabIndex by remember { mutableStateOf(0) }
 
-    var currentRange by remember {
-        val cal = Calendar.getInstance()
-        val end = cal.timeInMillis
-        cal.add(Calendar.DAY_OF_YEAR, -(mode.days - 1))
-        val start = cal.timeInMillis
-        mutableStateOf<Pair<Long, Long>>(start to end)
-    }
-    var smsTransactions by remember {
-        mutableStateOf<List<ParsedSmsTransaction>>(emptyList())
-    }
+    // Get state from ViewModel
+    val isLoading by viewModel.isLoading.collectAsState()
+    val smsTransactions by viewModel.smsTransactions.collectAsState()
+    val transactions by viewModel.transactions.collectAsState()
+    val currentRange by viewModel.dateRange.collectAsState()
+    val mode by viewModel.dateRangeMode.collectAsState()
+    val prevRange by viewModel.prevRange.collectAsState()
+
+    val prefs = context.getSharedPreferences(MainViewModel.CORE_NAME, Context.MODE_PRIVATE)
 
     SamStudioAppTheme {
         Box(
@@ -956,35 +946,11 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            val db = Room.databaseBuilder(
-                context,
-                AppDatabase::class.java,
-                Constants.DB_NAME
-            ).build()
-            val dao = db.bankTransactionDao()
-
+            // Initialize preferences on first load
             LaunchedEffect(Unit) {
-                val savedStart = prefs.getLong(RANGE_START, -1L)
-                val savedEnd = prefs.getLong(RANGE_END, -1L)
-                val savedMode = prefs.getString(RANGE_MODE, null)
-                if (savedStart > 0 && savedEnd > 0 && savedMode != null) {
-                    mode = DateRangeMode.valueOf(savedMode)
-                    currentRange = savedStart to savedEnd
-                }
-                // Todo: move to vm
-                val allTransactions = withContext(Dispatchers.IO) { dao.getAll() }
-                smsTransactions = allTransactions.map {
-                    ParsedSmsTransaction(
-                        amount = it.amount,
-                        bankName = it.bankName,
-                        messageTime = it.messageTime,
-                        rawMessage = it.tags
-                    )
-                }
+                viewModel.loadInitialPreferences(prefs)
             }
 
-            // Move this outside the Column:
-            var selectedTabIndex by remember { mutableStateOf(0) }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -1010,67 +976,43 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     prevRange = prevRange,
                     prefs = prefs,
                     onPrevClick = {
-                        prevRange = currentRange
-                        val newRange = shiftDateRange(currentRange, mode, forward = false)
-                        currentRange = newRange
+                        viewModel.shiftDateRange(forward = false)
+                        // Save to preferences
+                        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
                         prefs.edit {
-                            putLong("date_range_start", newRange.first)
-                            putLong("date_range_end", newRange.second)
-                            putString("date_range_mode", mode.name)
+                            putLong(MainViewModel.RANGE_START, start)
+                            putLong(MainViewModel.RANGE_END, end)
+                            putString(MainViewModel.RANGE_MODE, modeName)
                         }
                     },
                     onNextClick = {
-                        prevRange = currentRange
-                        val newRange = shiftDateRange(currentRange, mode, forward = true)
-                        currentRange = newRange
+                        viewModel.shiftDateRange(forward = true)
+                        // Save to preferences
+                        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
                         prefs.edit {
-                            putLong("date_range_start", newRange.first)
-                            putLong("date_range_end", newRange.second)
-                            putString("date_range_mode", mode.name)
+                            putLong(MainViewModel.RANGE_START, start)
+                            putLong(MainViewModel.RANGE_END, end)
+                            putString(MainViewModel.RANGE_MODE, modeName)
                         }
                     },
                     onModeChange = { newMode ->
-                        mode = newMode
-                        val cal = java.util.Calendar.getInstance()
-                        val end = cal.timeInMillis
-                        cal.add(java.util.Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-                        val start = cal.timeInMillis
-                        currentRange = start to end
+                        viewModel.changeDateRangeMode(newMode)
+                        // Save to preferences
+                        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
                         prefs.edit {
-                            putLong("date_range_start", start)
-                            putLong("date_range_end", end)
-                            putString("date_range_mode", newMode.name)
+                            putLong(MainViewModel.RANGE_START, start)
+                            putLong(MainViewModel.RANGE_END, end)
+                            putString(MainViewModel.RANGE_MODE, modeName)
                         }
                     },
                     onDatePickerChange = { start, end ->
-                        prevRange = currentRange
-                        // Patch: expand single-day range to full day
-                        val calStart =
-                            java.util.Calendar.getInstance().apply { timeInMillis = start }
-                        val calEnd =
-                            java.util.Calendar.getInstance().apply { timeInMillis = end }
-                        val isSameDay =
-                            calStart.get(java.util.Calendar.YEAR) == calEnd.get(java.util.Calendar.YEAR) &&
-                                    calStart.get(java.util.Calendar.DAY_OF_YEAR) == calEnd.get(
-                                java.util.Calendar.DAY_OF_YEAR
-                            )
-                        if (isSameDay) {
-                            calStart.set(java.util.Calendar.HOUR_OF_DAY, 0)
-                            calStart.set(java.util.Calendar.MINUTE, 0)
-                            calStart.set(java.util.Calendar.SECOND, 0)
-                            calStart.set(java.util.Calendar.MILLISECOND, 0)
-                            calEnd.set(java.util.Calendar.HOUR_OF_DAY, 23)
-                            calEnd.set(java.util.Calendar.MINUTE, 59)
-                            calEnd.set(java.util.Calendar.SECOND, 59)
-                            calEnd.set(java.util.Calendar.MILLISECOND, 999)
-                        }
-                        val newStart = calStart.timeInMillis
-                        val newEnd = calEnd.timeInMillis
-                        currentRange = newStart to newEnd
+                        viewModel.setDateRangeFromPicker(start, end)
+                        // Save to preferences
+                        val (startRange, endRange, modeName) = viewModel.getDateRangeForPreferences()
                         prefs.edit {
-                            putLong("date_range_start", newStart)
-                            putLong("date_range_end", newEnd)
-                            putString("date_range_mode", mode.name)
+                            putLong(MainViewModel.RANGE_START, startRange)
+                            putLong(MainViewModel.RANGE_END, endRange)
+                            putString(MainViewModel.RANGE_MODE, modeName)
                         }
                     },
                     onRefreshClick = {
@@ -1084,69 +1026,10 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                             Log.d("SamStudio", "SMS permission granted: $permissionGranted")
 
                             if (permissionGranted) {
-                                coroutineScope.launch {
-                                    try {
-                                        Log.d("SamStudio", "Starting SMS parsing...")
-                                        isLoading = true
-                                        val parsed = withContext(Dispatchers.IO) {
-                                            readAndParseSms(context)
-                                        }
-                                        Log.d("SamStudio", "Parsed ${parsed.size} SMS messages")
-
-                                        // Save all as BankTransaction, ignore duplicates
-                                        parsed.forEach { sms ->
-                                            val txn = BankTransaction(
-                                                amount = sms.amount,
-                                                bankName = sms.bankName,
-                                                messageTime = sms.messageTime,
-                                                tags = sms.rawMessage,
-                                                count = null
-                                            )
-                                            try {
-                                                withContext(Dispatchers.IO) {
-                                                    dao.insert(txn)
-                                                }
-                                            } catch (e: Exception) {
-                                                Log.e(
-                                                    "SamStudio",
-                                                    "Insert error: ${e.message}"
-                                                )
-                                            }
-                                        }
-
-                                        val allTxns = withContext(Dispatchers.IO) {
-                                            dao.getAll()
-                                        }
-                                        Log.d(
-                                            "SamStudio",
-                                            "Retrieved ${allTxns.size} transactions from DB"
-                                        )
-
-                                        smsTransactions = allTxns.map {
-                                            ParsedSmsTransaction(
-                                                amount = it.amount,
-                                                bankName = it.bankName,
-                                                messageTime = it.messageTime,
-                                                rawMessage = it.tags
-                                            )
-                                        }
-                                        Log.d(
-                                            "SamStudio",
-                                            "Updated smsTransactions list with ${smsTransactions.size} items"
-                                        )
-                                        isLoading = false
-                                    } catch (e: Exception) {
-                                        Log.e(
-                                            "SamStudio",
-                                            "Error during refresh: ${e.message}",
-                                            e
-                                        )
-                                        isLoading = false
-                                    }
-                                }
+                                viewModel.syncFromSms(context)
                             } else {
                                 Log.d("SamStudio", "Requesting SMS permission...")
-                              //  requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
+                                // requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
                             }
                         } else {
                             Log.d("SamStudio", "Already loading, ignoring refresh click")
@@ -1154,46 +1037,10 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     },
                     isLoading = isLoading,
                     onAddDummyClick = {
-                        coroutineScope.launch {
-                            val dummyList = listOf(
-                                BankTransaction(
-                                    amount = 100.0,
-                                    bankName = "HDFC",
-                                    tags = "Food",
-                                    messageTime = System.currentTimeMillis()
-                                ),
-                                BankTransaction(
-                                    amount = 200.0,
-                                    bankName = "ICICI",
-                                    tags = "Travel",
-                                    messageTime = System.currentTimeMillis()
-                                ),
-                                BankTransaction(
-                                    amount = 50.0,
-                                    bankName = "SBI",
-                                    tags = "Cigarette",
-                                    messageTime = System.currentTimeMillis()
-                                ),
-                                BankTransaction(
-                                    amount = 80.0,
-                                    bankName = "Axis",
-                                    tags = "Food",
-                                    messageTime = System.currentTimeMillis()
-                                ),
-                                BankTransaction(
-                                    amount = 120.0,
-                                    bankName = "Kotak",
-                                    tags = "Other",
-                                    messageTime = System.currentTimeMillis()
-                                )
-                            )
-                            dummyList.forEach { dao.insert(it) }
-                            roomTransactions =
-                                withContext(Dispatchers.IO) { dao.getAll() }
-                        }
+                        viewModel.addDummyTransactions()
                     },
                     smsTransactions = smsTransactions,
-                    bankTransactions = roomTransactions,
+                    bankTransactions = transactions,
                     onEdit = { editingTransaction = it; showDialog = true }
                 )
 
@@ -1204,7 +1051,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                 // Tab content
                 MainTabContent(
                     selectedTabIndex = selectedTabIndex,
-                    roomTransactions = roomTransactions,
+                    roomTransactions = transactions,
                     currentRange = currentRange,
                     mode = mode,
                     categories = categories,
@@ -1216,6 +1063,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     }
                 )
             }
+            
             // Show bottom sheet for editing (must be inside setContent)
             if (showEditSheet && editId != null) {
                 ModalBottomSheet(
@@ -1238,7 +1086,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                         Spacer(Modifier.height(12.dp))
                         val typeOptions = categories.map { it.first }
                         var expanded by remember { mutableStateOf(false) }
-                        androidx.compose.material3.ExposedDropdownMenuBox(
+                        ExposedDropdownMenuBox(
                             expanded = expanded,
                             onExpandedChange = { expanded = !expanded }
                         ) {
@@ -1275,17 +1123,12 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                             TextButton(onClick = {
                                 val amt = editAmount.toDoubleOrNull()
                                 if (amt != null && editType.isNotBlank() && editId != null) {
-                                    coroutineScope.launch {
-                                        val txn = roomTransactions.find { it.id == editId }
-                                        if (txn != null) {
-                                            val updatedTxn =
-                                                txn.copy(amount = amt, tags = editType)
-                                            viewModel.updateTransaction(updatedTxn)
-                                            roomTransactions =
-                                                withContext(Dispatchers.IO) { dao.getAll() }
-                                        }
-                                        showEditSheet = false
+                                    val txn = transactions.find { it.id == editId }
+                                    if (txn != null) {
+                                        val updatedTxn = txn.copy(amount = amt, tags = editType)
+                                        viewModel.updateTransaction(updatedTxn)
                                     }
+                                    showEditSheet = false
                                 }
                             }) { Text("Save") }
                         }
