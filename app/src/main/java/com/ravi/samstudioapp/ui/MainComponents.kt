@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -103,9 +104,9 @@ enum class DateRangeMode(val days: Int) {
     DAILY(1), WEEKLY(7), MONTHLY(30)
 }
 
-val darkShadow = ComposeColor.Black.copy(alpha = 0.40f)
-val lightShadow = ComposeColor.White.copy(alpha = 0.10f)
-val backgroundColor = ComposeColor.Black.copy(alpha = 0.9f)
+private val Black = ComposeColor(0xFF121212)
+private val DarkGray = ComposeColor(0xFF080809)
+private val LightGray = ComposeColor(0xFFE0E0E0)
 
 // Define a single source of truth for categories
 val categories = listOf(
@@ -189,13 +190,14 @@ fun CustomToolbarWithDateRange(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             elevation = CardDefaults.cardElevation(
                 defaultElevation = 8.dp,
                 pressedElevation = 4.dp
             ),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
+                containerColor = Black
             ),
             shape = MaterialTheme.shapes.medium
         ) {
@@ -208,16 +210,15 @@ fun CustomToolbarWithDateRange(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // App Title with Gradient-like styling
+                    // App Title
                     Text(
                         text = title,
                         style = MaterialTheme.typography.headlineSmall.copy(
                             fontWeight = FontWeight.Bold
                         ),
-                        color = MaterialTheme.colorScheme.primary
+                        color = LightGray
                     )
-                    
-                    // Action Buttons Row
+                    // Action Buttons Row (all use dark gray)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -227,7 +228,7 @@ fun CustomToolbarWithDateRange(
                             modifier = Modifier.size(40.dp),
                             shape = MaterialTheme.shapes.small,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = DarkGray
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -238,21 +239,17 @@ fun CustomToolbarWithDateRange(
                                 Icon(
                                     Icons.Filled.Analytics,
                                     contentDescription = "Insights",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    tint = LightGray,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
-                        
                         // Refresh Button
                         Card(
                             modifier = Modifier.size(40.dp),
                             shape = MaterialTheme.shapes.small,
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isLoading) 
-                                    MaterialTheme.colorScheme.surfaceVariant 
-                                else 
-                                    MaterialTheme.colorScheme.secondaryContainer
+                                containerColor = DarkGray
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -264,18 +261,17 @@ fun CustomToolbarWithDateRange(
                                 Icon(
                                     Icons.Filled.Refresh,
                                     contentDescription = "Refresh",
-                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    tint = LightGray,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
-                        
                         // Mode Toggle Button
                         Card(
                             modifier = Modifier.size(40.dp),
                             shape = MaterialTheme.shapes.small,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                                containerColor = DarkGray
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -302,7 +298,7 @@ fun CustomToolbarWithDateRange(
                             ) {
                                 Text(
                                     text = mode.days.toString(),
-                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    color = LightGray,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.Bold
                                 )
@@ -310,15 +306,13 @@ fun CustomToolbarWithDateRange(
                         }
                     }
                 }
-                
                 Spacer(modifier = Modifier.height(16.dp))
-                
                 // Date Range Row with Neumorphic Design
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.small,
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        containerColor = DarkGray
                     ),
                     elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
@@ -334,7 +328,7 @@ fun CustomToolbarWithDateRange(
                             modifier = Modifier.size(36.dp),
                             shape = MaterialTheme.shapes.small,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = Black
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -345,12 +339,11 @@ fun CustomToolbarWithDateRange(
                                 Icon(
                                     Icons.Filled.ArrowBack,
                                     contentDescription = "Previous",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    tint = LightGray,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
                         }
-                        
                         // Date Range Display
                         Card(
                             modifier = Modifier
@@ -358,7 +351,7 @@ fun CustomToolbarWithDateRange(
                                 .padding(horizontal = 12.dp),
                             shape = MaterialTheme.shapes.small,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surface
+                                containerColor = DarkGray
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                         ) {
@@ -367,20 +360,19 @@ fun CustomToolbarWithDateRange(
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.Medium
                                 ),
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = LightGray,
                                 modifier = Modifier
                                     .padding(horizontal = 16.dp, vertical = 12.dp)
                                     .clickable { showDateRangePicker = true },
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
-                        
                         // Next Button
                         Card(
                             modifier = Modifier.size(36.dp),
                             shape = MaterialTheme.shapes.small,
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                                containerColor = Black
                             ),
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
@@ -391,7 +383,7 @@ fun CustomToolbarWithDateRange(
                                 Icon(
                                     Icons.Filled.ArrowForward,
                                     contentDescription = "Next",
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    tint = LightGray,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -401,7 +393,6 @@ fun CustomToolbarWithDateRange(
             }
         }
     }
-
     // Date Range Picker Dialog
     if (showDateRangePicker) {
         DatePickerDialog(
@@ -823,16 +814,13 @@ fun LoadMainScreen(viewModel: MainViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background( MaterialTheme.colorScheme.surface)
-//                    containerColor = MaterialTheme.colorScheme.surface,
-//            contentColor = MaterialTheme.colorScheme.onSurface,
-
-            ) {
+                .background(DarkGray)
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     //.background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = 12.dp, vertical = 24.dp)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 ToolbarWithDateRange(
                     currentRange = currentRange,
