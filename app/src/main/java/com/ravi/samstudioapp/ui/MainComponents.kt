@@ -101,6 +101,9 @@ import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.RepeatMode
+import com.ravi.samstudioapp.utils.PermissionManager
 
 
 // Add DateRangeMode enum at the top level
@@ -295,12 +298,28 @@ fun CustomToolbarWithDateRange(
                                 enabled = !isLoading,
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                Icon(
-                                    Icons.Filled.Refresh,
-                                    contentDescription = "Refresh",
-                                    tint = LightGray,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                if (isLoading) {
+                                    androidx.compose.animation.core.animateFloatAsState(
+                                        targetValue = 360f,
+                                        animationSpec = androidx.compose.animation.core.tween(1000)
+                                    ).value.let { rotation ->
+                                        Icon(
+                                            Icons.Filled.Refresh,
+                                            contentDescription = "Syncing...",
+                                            tint = LightGray,
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .graphicsLayer(rotationZ = rotation)
+                                        )
+                                    }
+                                } else {
+                                    Icon(
+                                        Icons.Filled.Refresh,
+                                        contentDescription = "Refresh",
+                                        tint = LightGray,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                         }
                         // Mode Toggle Button
@@ -881,23 +900,27 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                         savePreferences()
                     },
                     onRefreshClick = {
-                        Log.d("SamStudio", "Refresh button clicked, isLoading: $isLoading")
+                        Log.d("SamStudio", "UI: Refresh button clicked, isLoading: $isLoading")
+                        Log.d("SamStudio", "UI: About to check SMS permission")
                         if (!isLoading) {
                             val permissionGranted = ContextCompat.checkSelfPermission(
                                 context,
                                 Manifest.permission.READ_SMS
                             ) == PackageManager.PERMISSION_GRANTED
 
-                            Log.d("SamStudio", "SMS permission granted: $permissionGranted")
+                            Log.d("SamStudio", "UI: SMS permission granted: $permissionGranted")
 
                             if (permissionGranted) {
+                                Log.d("SamStudio", "UI: Permission granted, calling viewModel.syncFromSms")
                                 viewModel.syncFromSms(context)
+                                Log.d("SamStudio", "UI: viewModel.syncFromSms called successfully")
                             } else {
-                                Log.d("SamStudio", "Requesting SMS permission...")
-                                // requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
+                                Log.d("SamStudio", "UI: Permission not granted, requesting SMS permission...")
+                                PermissionManager.requestSmsPermission()
+                                Log.d("SamStudio", "UI: Permission request launched")
                             }
                         } else {
-                            Log.d("SamStudio", "Already loading, ignoring refresh click")
+                            Log.d("SamStudio", "UI: Already loading, ignoring refresh click")
                         }
                     },
                     onInsightsClick = {
@@ -927,13 +950,47 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                 when (selectedTabIndex) {
                     0 -> {
                         // Transactions Tab
-                        TransactionList(
-                            smsTransactions = filteredSmsTransactions,
-                            bankTransactions = transactions,
-                            onEdit = { transaction ->
-                                viewModel.updateTransaction(transaction)
+                        if (isLoading) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    androidx.compose.animation.core.animateFloatAsState(
+                                        targetValue = 360f,
+                                        animationSpec = androidx.compose.animation.core.tween(1000)
+                                    ).value.let { rotation ->
+                                        Icon(
+                                            Icons.Filled.Refresh,
+                                            contentDescription = "Syncing...",
+                                            tint = LightGray,
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .graphicsLayer(rotationZ = rotation)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Syncing SMS transactions...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = LightGray,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                }
                             }
-                        )
+                        } else {
+                            TransactionList(
+                                smsTransactions = filteredSmsTransactions,
+                                bankTransactions = transactions,
+                                onEdit = { transaction ->
+                                    viewModel.updateTransaction(transaction)
+                                }
+                            )
+                        }
                     }
                     1 -> {
                         // Insights Tab - Empty for now

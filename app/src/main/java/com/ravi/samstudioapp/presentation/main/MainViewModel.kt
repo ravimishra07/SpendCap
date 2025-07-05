@@ -119,11 +119,23 @@ class MainViewModel(
     }
 
     fun syncFromSms(context: Context) {
+        Log.d("SamStudio", "syncFromSms: Starting sync process")
         viewModelScope.launch {
+            Log.d("SamStudio", "syncFromSms: Setting loading to true")
             _isLoading.value = true
             try {
-                val smsTxns = withContext(Dispatchers.IO) { readAndParseSms(context) }
+                Log.d("SamStudio", "syncFromSms: About to read and parse SMS")
+                val smsTxns = withContext(Dispatchers.IO) { 
+                    Log.d("SamStudio", "syncFromSms: Calling readAndParseSms")
+                    readAndParseSms(context) 
+                }
+                Log.d("SamStudio", "syncFromSms: SMS parsing completed, found ${smsTxns.size} transactions")
+                
+                Log.d("SamStudio", "syncFromSms: Getting existing transactions")
                 val existing = withContext(Dispatchers.IO) { getAllTransactions() }
+                Log.d("SamStudio", "syncFromSms: Found ${existing.size} existing transactions")
+                
+                Log.d("SamStudio", "syncFromSms: Mapping SMS transactions to BankTransactions")
                 val newTxns = smsTxns.map { sms ->
                     BankTransaction(
                         amount = sms.amount,
@@ -135,18 +147,31 @@ class MainViewModel(
                 }.filter { txn ->
                     existing.none { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
                 }
+                Log.d("SamStudio", "syncFromSms: After filtering duplicates, ${newTxns.size} new transactions to insert")
+                
                 // Batch insert if possible, else insert one by one
-                newTxns.forEach { txn -> withContext(Dispatchers.IO) { insertTransaction(txn) } }
+                Log.d("SamStudio", "syncFromSms: Starting to insert new transactions")
+                newTxns.forEach { txn -> 
+                    Log.d("SamStudio", "syncFromSms: Inserting transaction: ${txn.amount} from ${txn.bankName}")
+                    withContext(Dispatchers.IO) { insertTransaction(txn) } 
+                }
+                Log.d("SamStudio", "syncFromSms: All transactions inserted, reloading data")
+                
                 loadAllTransactions()
                 loadSmsTransactions()
                 updateFilteredSmsTransactions()
+                Log.d("SamStudio", "syncFromSms: Sync completed successfully")
             } catch (e: Exception) {
-                Log.e("syncFromSms", "Error syncing SMS", e)
+                Log.e("SamStudio", "syncFromSms: Error syncing SMS", e)
+                Log.e("SamStudio", "syncFromSms: Error message: ${e.message}")
+                Log.e("SamStudio", "syncFromSms: Error stack trace: ${e.stackTraceToString()}")
                 // Optionally update an error state or show a Toast
             } finally {
+                Log.d("SamStudio", "syncFromSms: Setting loading to false")
                 _isLoading.value = false
             }
         }
+        Log.d("SamStudio", "syncFromSms: Function call completed")
     }
 
     // New methods for LoadMainScreen functionality
@@ -162,6 +187,29 @@ class MainViewModel(
                     rawMessage = it.tags
                 )
             }
+            updateFilteredSmsTransactions()
+        }
+    }
+
+    fun loadSmsTransactions(maxDays: Int = 30) {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val cutoff = now - (maxDays * 24 * 60 * 60 * 1000L)
+
+            val allTransactions = getAllTransactions()
+                .sortedByDescending { it.messageTime } // Newest first
+
+            val recentTransactions = allTransactions.takeWhile { it.messageTime >= cutoff }
+
+            _smsTransactions.value = recentTransactions.map {
+                ParsedSmsTransaction(
+                    amount = it.amount,
+                    bankName = it.bankName,
+                    messageTime = it.messageTime,
+                    rawMessage = it.tags
+                )
+            }
+
             updateFilteredSmsTransactions()
         }
     }
