@@ -185,98 +185,221 @@ fun CustomToolbarWithDateRange(
     }
 
     Column(modifier = modifier) {
-        // Toolbar Row
-        Row(
+        // Main Toolbar Card with Neumorphic Design
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+                .padding(horizontal = 8.dp, vertical = 8.dp),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 8.dp,
+                pressedElevation = 4.dp
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            shape = MaterialTheme.shapes.medium
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                color = ComposeColor.White
-            )
-            Row {
-                IconButton(onClick = onInsightsClick) {
-                    Icon(
-                        Icons.Filled.Analytics, 
-                        contentDescription = "Insights",
-                        tint = ComposeColor.White
-                    )
-                }
-                IconButton(onClick = onRefreshClick, enabled = !isLoading) {
-                    Icon(Icons.Filled.Refresh,  tint = ComposeColor.White,contentDescription = "Refresh")
-                }
-                // Number toggle with circular background
-                IconButton(onClick = {
-                    val newMode = when (mode) {
-                        DateRangeMode.DAILY -> DateRangeMode.WEEKLY
-                        DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
-                        DateRangeMode.MONTHLY -> DateRangeMode.DAILY
-                    }
-                    onModeChange(newMode)
-                    val cal = Calendar.getInstance()
-                    val end = cal.timeInMillis
-                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-                    val start = cal.timeInMillis
-                    onDatePickerChange(start, end)
-                    Toast.makeText(
-                        context,
-                        "Range changed to ${newMode.days} days",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Text(
-                            text = mode.days.toString(),
-                            color = ComposeColor.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        // Date Range Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            IconButton(onClick = onPrevClick) {
-                Icon(
-                    Icons.Filled.ArrowBack,
-                    contentDescription = "Previous",
-                    tint = ComposeColor.White
-                )
-            }
-            Box(
-                modifier = Modifier.padding(horizontal = 8.dp)
+            Column(
+                modifier = Modifier.padding(16.dp)
             ) {
-                Text(
-                    text = formattedRange,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = ComposeColor.White,
-                    modifier = Modifier.clickable { showDateRangePicker = true }
-                )
-            }
-            IconButton(onClick = onNextClick) {
-                Icon(
-                    Icons.Filled.ArrowForward,
-                    contentDescription = "Next",
-                    tint = ComposeColor.White
-                )
+                // Top Row - Title and Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // App Title with Gradient-like styling
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    
+                    // Action Buttons Row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Insights Button
+                        Card(
+                            modifier = Modifier.size(40.dp),
+                            shape = MaterialTheme.shapes.small,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            IconButton(
+                                onClick = onInsightsClick,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Analytics,
+                                    contentDescription = "Insights",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        
+                        // Refresh Button
+                        Card(
+                            modifier = Modifier.size(40.dp),
+                            shape = MaterialTheme.shapes.small,
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isLoading) 
+                                    MaterialTheme.colorScheme.surfaceVariant 
+                                else 
+                                    MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            IconButton(
+                                onClick = onRefreshClick,
+                                enabled = !isLoading,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = "Refresh",
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        
+                        // Mode Toggle Button
+                        Card(
+                            modifier = Modifier.size(40.dp),
+                            shape = MaterialTheme.shapes.small,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    val newMode = when (mode) {
+                                        DateRangeMode.DAILY -> DateRangeMode.WEEKLY
+                                        DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
+                                        DateRangeMode.MONTHLY -> DateRangeMode.DAILY
+                                    }
+                                    onModeChange(newMode)
+                                    val cal = Calendar.getInstance()
+                                    val end = cal.timeInMillis
+                                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                                    val start = cal.timeInMillis
+                                    onDatePickerChange(start, end)
+                                    Toast.makeText(
+                                        context,
+                                        "Range changed to ${newMode.days} days",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Text(
+                                    text = mode.days.toString(),
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Date Range Row with Neumorphic Design
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.small,
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // Previous Button
+                        Card(
+                            modifier = Modifier.size(36.dp),
+                            shape = MaterialTheme.shapes.small,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            IconButton(
+                                onClick = onPrevClick,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.ArrowBack,
+                                    contentDescription = "Previous",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        
+                        // Date Range Display
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(horizontal = 12.dp),
+                            shape = MaterialTheme.shapes.small,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surface
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Text(
+                                text = formattedRange,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    .clickable { showDateRangePicker = true },
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                        
+                        // Next Button
+                        Card(
+                            modifier = Modifier.size(36.dp),
+                            shape = MaterialTheme.shapes.small,
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.primaryContainer
+                            ),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            IconButton(
+                                onClick = onNextClick,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.ArrowForward,
+                                    contentDescription = "Next",
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
-        Spacer(modifier = Modifier.height(4.dp))
     }
 
     // Date Range Picker Dialog
