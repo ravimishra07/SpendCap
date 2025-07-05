@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -97,6 +98,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.foundation.BorderStroke
 
 
 // Add DateRangeMode enum at the top level
@@ -1057,16 +1059,18 @@ fun TransactionList(
         horizontalArrangement = Arrangement.Center
     ) {
         categoryDefs.forEach { category ->
+            val isSelected = selectedCategory == category
             AssistChip(
                 onClick = {
-                    selectedCategory = if (selectedCategory == category) null else category
+                    selectedCategory = if (isSelected) null else category
                 },
-                label = { Text(category.name, color = ComposeColor.White) },
-                leadingIcon = { Icon(category.icon, contentDescription = category.name) },
+                label = { Text(category.name, color = LightGray) },
+                leadingIcon = { Icon(category.icon, contentDescription = category.name, tint = LightGray) },
                 colors = AssistChipDefaults.assistChipColors(
-                    containerColor = if (selectedCategory == category) category.color else ComposeColor.LightGray,
-                    labelColor = if (selectedCategory == category) ComposeColor.White else ComposeColor.Black
+                    containerColor = if (isSelected) DarkGray else Black,
+                    labelColor = LightGray
                 ),
+                border = if (isSelected) BorderStroke(1.dp, LightGray) else null,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
         }

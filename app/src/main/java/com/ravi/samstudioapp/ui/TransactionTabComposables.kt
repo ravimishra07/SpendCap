@@ -26,12 +26,16 @@ import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import kotlin.collections.component1
 import kotlin.collections.component2
 
+private val Black = androidx.compose.ui.graphics.Color(0xFF121212)
+private val DarkGray = androidx.compose.ui.graphics.Color(0xFF232323)
+private val LightGray = androidx.compose.ui.graphics.Color(0xFFE0E0E0)
+
 @Composable
 fun MainTabIndicator(tabPositions: List<TabPosition>, selectedTabIndex: Int) {
     TabRowDefaults.Indicator(
         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
         height = 2.dp,
-        color = MaterialTheme.colorScheme.primary
+        color = LightGray
     )
 }
 
@@ -43,8 +47,8 @@ fun MainTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
         indicator = { tabPositions ->
             MainTabIndicator(tabPositions, selectedTabIndex)
         },
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        containerColor = Black,
+        contentColor = LightGray,
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp)
@@ -63,9 +67,9 @@ fun MainTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
                         text = title,
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (selectedTabIndex == index)
-                            MaterialTheme.colorScheme.primary
+                            LightGray
                         else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                            LightGray.copy(alpha = 0.5f)
                     )
                 }
             )
