@@ -67,26 +67,6 @@ fun MainTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
                         else
                             MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                     )
-                },
-                icon = {
-                    when (index) {
-                        0 -> Icon(
-                            Icons.Filled.List,
-                            contentDescription = "Transactions",
-                            tint = if (selectedTabIndex == index)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                        1 -> Icon(
-                            Icons.Filled.Analytics,
-                            contentDescription = "Insights",
-                            tint = if (selectedTabIndex == index)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                    }
                 }
             )
         }
