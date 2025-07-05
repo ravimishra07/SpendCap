@@ -181,7 +181,7 @@ fun CustomToolbarWithDateRange(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(text = title, style = MaterialTheme.typography.titleLarge)
+            Text(text = title, style = MaterialTheme.typography.titleLarge, color = ComposeColor.White)
             Row {
                 IconButton(onClick = onRefreshClick, enabled = !isLoading) {
                     Icon(Icons.Filled.Refresh, contentDescription = "Refresh")
@@ -225,7 +225,7 @@ fun CustomToolbarWithDateRange(
             horizontalArrangement = Arrangement.Center
         ) {
             IconButton(onClick = onPrevClick) {
-                Icon(Icons.Filled.ArrowBack, contentDescription = "Previous")
+                Icon(Icons.Filled.ArrowBack, contentDescription = "Previous", tint  = ComposeColor.White)
             }
             Box(
                 modifier = Modifier.padding(horizontal = 8.dp)
@@ -233,11 +233,12 @@ fun CustomToolbarWithDateRange(
                 Text(
                     text = formattedRange,
                     style = MaterialTheme.typography.bodyLarge,
+                    color = ComposeColor.White,
                     modifier = Modifier.clickable { showDateRangePicker = true }
                 )
             }
             IconButton(onClick = onNextClick) {
-                Icon(Icons.Filled.ArrowForward, contentDescription = "Next")
+                Icon(Icons.Filled.ArrowForward, contentDescription = "Next",tint  = ComposeColor.White)
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
@@ -254,7 +255,7 @@ fun CustomToolbarWithDateRange(
             categoryDefs.forEach { category ->
                 AssistChip(
                     onClick = { selectedCategory = if (selectedCategory == category) null else category },
-                    label = { Text(category.name) },
+                    label = { Text(category.name,color = ComposeColor.White,) },
                     leadingIcon = { Icon(category.icon, contentDescription = category.name) },
                     colors = AssistChipDefaults.assistChipColors(
                         containerColor = if (selectedCategory == category) category.color else ComposeColor.LightGray,
@@ -274,7 +275,7 @@ fun CustomToolbarWithDateRange(
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 grouped.forEach { (date, txns) ->
                     item {
-                        Text(date, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp))
+                        Text(date, fontWeight = FontWeight.Bold, fontSize = 18.sp, modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),color = ComposeColor.White)
                     }
                     items(txns) { txn ->
                         val bankTxn = bankTransactions.find { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
@@ -287,8 +288,8 @@ fun CustomToolbarWithDateRange(
                             Column(modifier = Modifier.padding(12.dp)) {
                                 val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
                                 val dateTime = dateTimeFormat.format(Date(txn.messageTime))
-                                Text("Amount: ₹${txn.amount}")
-                                Text("Bank: ${txn.bankName}")
+                                Text("Amount: ₹${txn.amount}",color = ComposeColor.White,)
+                                Text("Bank: ${txn.bankName}",color = ComposeColor.White,)
                                 Text("Message: ${txn.rawMessage}", fontSize = 12.sp, color = ComposeColor.Gray)
                                 // Show category as a chip
                                 val catName = bankTxn?.category ?: "Other"
@@ -296,7 +297,7 @@ fun CustomToolbarWithDateRange(
                                 Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                                     AssistChip(
                                         onClick = {},
-                                        label = { Text(catDef.name) },
+                                        label = { Text(catDef.name,color = ComposeColor.White,) },
                                         leadingIcon = { Icon(catDef.icon, contentDescription = catDef.name) },
                                         colors = AssistChipDefaults.assistChipColors(
                                             containerColor = catDef.color,
@@ -307,7 +308,7 @@ fun CustomToolbarWithDateRange(
                                         Spacer(Modifier.width(8.dp))
                                         AssistChip(
                                             onClick = {},
-                                            label = { Text("Verified") },
+                                            label = { Text("Verified",color = ComposeColor.White,) },
                                             leadingIcon = { Icon(Icons.Filled.Check, contentDescription = "Verified") },
                                             colors = AssistChipDefaults.assistChipColors(
                                                 containerColor = ComposeColor(0xFF388E3C),
