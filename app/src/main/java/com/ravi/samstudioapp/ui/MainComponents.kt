@@ -1102,7 +1102,9 @@ fun TransactionList(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 2.dp, horizontal = 8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        shape = MaterialTheme.shapes.medium,
+                        colors = CardDefaults.cardColors(containerColor = DarkGray)
                     ) {
                         Column(modifier = Modifier.padding(12.dp)) {
                             val dateTimeFormat = remember {
@@ -1112,12 +1114,12 @@ fun TransactionList(
                                 )
                             }
                             val dateTime = dateTimeFormat.format(Date(txn.messageTime))
-                            Text("Amount: ₹${txn.amount}", color = ComposeColor.White)
-                            Text("Bank: ${txn.bankName}", color = ComposeColor.White)
+                            Text("Amount: ₹${txn.amount}", color = LightGray)
+                            Text("Bank: ${txn.bankName}", color = LightGray)
                             Text(
                                 "Message: ${txn.rawMessage}",
                                 fontSize = 12.sp,
-                                color = ComposeColor.Gray
+                                color = LightGray.copy(alpha = 0.6f)
                             )
                             // Show category as a chip
                             val catName = bankTxn?.category ?: "Other"
@@ -1127,17 +1129,19 @@ fun TransactionList(
                             Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                                 AssistChip(
                                     onClick = {},
-                                    label = { Text(catDef.name, color = ComposeColor.White) },
+                                    label = { Text(catDef.name, color = LightGray) },
                                     leadingIcon = {
                                         Icon(
                                             catDef.icon,
-                                            contentDescription = catDef.name
+                                            contentDescription = catDef.name,
+                                            tint = LightGray
                                         )
                                     },
                                     colors = AssistChipDefaults.assistChipColors(
-                                        containerColor = catDef.color,
-                                        labelColor = ComposeColor.White
-                                    )
+                                        containerColor = Black,
+                                        labelColor = LightGray
+                                    ),
+                                    border = BorderStroke(1.dp, LightGray)
                                 )
                                 if (bankTxn?.verified == true) {
                                     Spacer(Modifier.width(8.dp))
@@ -1146,43 +1150,24 @@ fun TransactionList(
                                         label = {
                                             Text(
                                                 "Verified",
-                                                color = ComposeColor.White,
+                                                color = LightGray,
                                             )
                                         },
                                         leadingIcon = {
                                             Icon(
                                                 Icons.Filled.Check,
-                                                contentDescription = "Verified"
+                                                contentDescription = "Verified",
+                                                tint = LightGray
                                             )
                                         },
                                         colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = ComposeColor(0xFF388E3C),
-                                            labelColor = ComposeColor.White
-                                        )
+                                            containerColor = Black,
+                                            labelColor = LightGray
+                                        ),
+                                        border = BorderStroke(1.dp, LightGray)
                                     )
                                 }
                             }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                IconButton(onClick = {
-                                    val txnToEdit = bankTxn ?: BankTransaction(
-                                        amount = txn.amount,
-                                        bankName = txn.bankName,
-                                        tags = "",
-                                        messageTime = txn.messageTime,
-                                        count = null,
-                                        category = "Other"
-                                    )
-                                    editingTxn = txnToEdit
-                                    Toast.makeText(context, "Edit clicked", Toast.LENGTH_SHORT)
-                                        .show()
-                                }) {
-                                    Icon(Icons.Filled.Edit, contentDescription = "Edit")
-                                }
-                            }
-                            // Date & Time at the bottom, bold and larger
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -1193,9 +1178,9 @@ fun TransactionList(
                                     text = dateTime,
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = ComposeColor.White,
+                                    color = LightGray,
                                     modifier = Modifier
-                                        .background(ComposeColor(0xFF222222))
+                                        .background(Black, shape = MaterialTheme.shapes.small)
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
