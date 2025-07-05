@@ -187,7 +187,6 @@ class MainViewModel(
         val newRange = calculateShiftedRange(_dateRange.value, _dateRangeMode.value, forward)
         _dateRange.value = newRange
         updateFilteredSmsTransactions()
-        saveDateRangeToPreferences()
     }
 
     fun changeDateRangeMode(newMode: DateRangeMode) {
@@ -198,7 +197,6 @@ class MainViewModel(
         val start = cal.timeInMillis
         _dateRange.value = start to end
         updateFilteredSmsTransactions()
-        saveDateRangeToPreferences()
     }
 
     fun setDateRangeFromPicker(start: Long, end: Long) {
@@ -225,7 +223,6 @@ class MainViewModel(
         val newEnd = calEnd.timeInMillis
         _dateRange.value = newStart to newEnd
         updateFilteredSmsTransactions()
-        saveDateRangeToPreferences()
     }
 
     fun addDummyTransactions() {
@@ -280,11 +277,6 @@ class MainViewModel(
         calEnd.add(Calendar.DAY_OF_YEAR, daysToShift)
         
         return calStart.timeInMillis to calEnd.timeInMillis
-    }
-
-    private fun saveDateRangeToPreferences() {
-        // This will be called from the UI with the actual SharedPreferences instance
-        // We'll pass the values to the UI layer
     }
 
     fun getDateRangeForPreferences(): Triple<Long, Long, String> {

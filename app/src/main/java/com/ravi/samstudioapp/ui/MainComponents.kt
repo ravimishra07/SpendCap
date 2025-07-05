@@ -938,8 +938,8 @@ fun LoadMainScreen(viewModel: MainViewModel) {
     val currentRange by viewModel.dateRange.collectAsState()
     val mode by viewModel.dateRangeMode.collectAsState()
     val prevRange by viewModel.prevRange.collectAsState()
-
     val prefs = context.getSharedPreferences(MainViewModel.CORE_NAME, Context.MODE_PRIVATE)
+    viewModel.loadInitialPreferences(prefs)
 
     SamStudioAppTheme {
         Box(
@@ -947,11 +947,6 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            // Initialize preferences on first load
-            LaunchedEffect(Unit) {
-                viewModel.loadInitialPreferences(prefs)
-            }
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
