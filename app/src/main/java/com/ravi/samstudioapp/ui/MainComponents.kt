@@ -99,6 +99,8 @@ import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.graphics.Color as ComposeColor
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
 
 
 // Add DateRangeMode enum at the top level
@@ -158,6 +160,42 @@ val categoryDefs = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+fun NeumorphicBorderBox(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 16.dp,
+    backgroundColor: Color = Black,
+    borderColor: Color = Color.White.copy(alpha = 0.10f),
+    borderWidth: Dp = 1.dp,
+    shadowColor: Color = Color.Black.copy(alpha = 0.25f),
+    shadowElevation: Dp = 8.dp,
+    contentPadding: Dp = 12.dp,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = shadowElevation,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
+            .background(
+                color = backgroundColor,
+                shape = RoundedCornerShape(cornerRadius)
+            )
+            .border(
+                width = borderWidth,
+                color = borderColor,
+                shape = RoundedCornerShape(cornerRadius)
+            )
+            .padding(contentPadding)
+    ) {
+        content()
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun CustomToolbarWithDateRange(
     modifier: Modifier = Modifier,
     title: String = "SpendMirror",
@@ -189,22 +227,19 @@ fun CustomToolbarWithDateRange(
 
     Column(modifier = modifier) {
         // Main Toolbar Card with Neumorphic Design
-        Card(
+        NeumorphicBorderBox(
             modifier = Modifier
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 8.dp,
-                pressedElevation = 4.dp
-            ),
-            colors = CardDefaults.cardColors(
-                containerColor = Black
-            ),
-            shape = MaterialTheme.shapes.medium
+            cornerRadius = 4.dp,
+            backgroundColor = Black,
+            borderColor = Color.White.copy(alpha = 0.10f),
+            shadowElevation = 8.dp,
+            contentPadding = 4.dp
         ) {
             Column(
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(4.dp)
             ) {
                 // Top Row - Title and Action Buttons
                 Row(
@@ -226,13 +261,13 @@ fun CustomToolbarWithDateRange(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // Insights Button
-                        Card(
+                        NeumorphicBorderBox(
                             modifier = Modifier.size(40.dp),
-                            shape = MaterialTheme.shapes.small,
-                            colors = CardDefaults.cardColors(
-                                containerColor = DarkGray
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
                         ) {
                             IconButton(
                                 onClick = onInsightsClick,
@@ -247,13 +282,13 @@ fun CustomToolbarWithDateRange(
                             }
                         }
                         // Refresh Button
-                        Card(
+                        NeumorphicBorderBox(
                             modifier = Modifier.size(40.dp),
-                            shape = MaterialTheme.shapes.small,
-                            colors = CardDefaults.cardColors(
-                                containerColor = DarkGray
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
                         ) {
                             IconButton(
                                 onClick = onRefreshClick,
@@ -269,13 +304,13 @@ fun CustomToolbarWithDateRange(
                             }
                         }
                         // Mode Toggle Button
-                        Card(
+                        NeumorphicBorderBox(
                             modifier = Modifier.size(40.dp),
-                            shape = MaterialTheme.shapes.small,
-                            colors = CardDefaults.cardColors(
-                                containerColor = DarkGray
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
                         ) {
                             IconButton(
                                 onClick = {
@@ -326,13 +361,13 @@ fun CustomToolbarWithDateRange(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         // Previous Button
-                        Card(
+                        NeumorphicBorderBox(
                             modifier = Modifier.size(36.dp),
-                            shape = MaterialTheme.shapes.small,
-                            colors = CardDefaults.cardColors(
-                                containerColor = Black
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            cornerRadius = 4.dp,
+                            backgroundColor = if (/* is selected or active */ false) DarkGray else Black,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
                         ) {
                             IconButton(
                                 onClick = onPrevClick,
@@ -370,13 +405,13 @@ fun CustomToolbarWithDateRange(
                             )
                         }
                         // Next Button
-                        Card(
+                        NeumorphicBorderBox(
                             modifier = Modifier.size(36.dp),
-                            shape = MaterialTheme.shapes.small,
-                            colors = CardDefaults.cardColors(
-                                containerColor = Black
-                            ),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                            cornerRadius = 4.dp,
+                            backgroundColor = if (/* is selected or active */ false) DarkGray else Black,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
                         ) {
                             IconButton(
                                 onClick = onNextClick,
@@ -1060,19 +1095,23 @@ fun TransactionList(
     ) {
         categoryDefs.forEach { category ->
             val isSelected = selectedCategory == category
-            AssistChip(
-                onClick = {
-                    selectedCategory = if (isSelected) null else category
-                },
-                label = { Text(category.name, color = LightGray) },
-                leadingIcon = { Icon(category.icon, contentDescription = category.name, tint = LightGray) },
-                colors = AssistChipDefaults.assistChipColors(
-                    containerColor = if (isSelected) DarkGray else Black,
-                    labelColor = LightGray
-                ),
-                border = if (isSelected) BorderStroke(1.dp, LightGray) else null,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
+            NeumorphicBorderBox(
+                modifier = Modifier.padding(horizontal = 4.dp),
+                cornerRadius = 16.dp,
+                backgroundColor = if (isSelected) DarkGray else Black,
+                borderColor = if (isSelected) LightGray else Color.White.copy(alpha = 0.10f),
+                shadowElevation = if (isSelected) 4.dp else 2.dp,
+                contentPadding = 8.dp
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { selectedCategory = if (isSelected) null else category }
+                ) {
+                    Icon(category.icon, contentDescription = category.name, tint = LightGray)
+                    Spacer(Modifier.width(6.dp))
+                    Text(category.name, color = LightGray)
+                }
+            }
         }
     }
     Spacer(modifier = Modifier.height(4.dp))
