@@ -23,6 +23,7 @@ import kotlinx.coroutines.withContext
 import androidx.compose.runtime.LaunchedEffect
 import java.util.Calendar
 import android.util.Log
+import android.os.Build
 
 class MainViewModel(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
@@ -441,6 +442,7 @@ class MainViewModel(
     /**
      * Test SMS receiver functionality
      */
+    /*
     fun testSmsReceiver(context: Context) {
         Log.d("MainViewModel", "Testing SMS receiver...")
         
@@ -452,6 +454,7 @@ class MainViewModel(
         context.sendBroadcast(testIntent)
         Log.d("MainViewModel", "Test SMS broadcast sent")
     }
+    */
 
     private fun calculateShiftedRange(currentRange: Pair<Long, Long>, mode: DateRangeMode, forward: Boolean): Pair<Long, Long> {
         val (start, end) = currentRange
@@ -519,5 +522,25 @@ class MainViewModel(
         _newMessageDetected.value = null
     }
     
-
+    fun testOverlayService(context: Context) {
+        Log.d("MainViewModel", "Testing overlay service...")
+        
+        try {
+            val serviceIntent = Intent(context, com.ravi.samstudioapp.ui.OverlayPopupService::class.java).apply {
+                putExtra(com.ravi.samstudioapp.ui.OverlayPopupService.EXTRA_MESSAGE, "Test Transaction Alert!")
+                putExtra(com.ravi.samstudioapp.ui.OverlayPopupService.EXTRA_BANK, "Test Bank")
+                putExtra(com.ravi.samstudioapp.ui.OverlayPopupService.EXTRA_AMOUNT, "₹1,000")
+            }
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(serviceIntent)
+            } else {
+                context.startService(serviceIntent)
+            }
+            Log.d("MainViewModel", "✅ Test overlay service started successfully")
+            
+        } catch (e: Exception) {
+            Log.e("MainViewModel", "❌ Failed to start test overlay service", e)
+        }
+    }
 } 

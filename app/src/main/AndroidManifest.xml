@@ -2,9 +2,26 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- SMS Permissions -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
+    
+    <!-- Overlay Permission -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    
+    <!-- Foreground Service Permissions -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED_SERVICE" />
+    
+    <!-- Battery Optimization Bypass -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
+    <!-- Wake Lock for reliable operation -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    
+    <!-- Network state for connectivity checks -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <application
@@ -18,7 +35,6 @@
         android:theme="@style/Theme.SamStudioApp"
         tools:targetApi="31">
 
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -26,10 +42,10 @@
             android:theme="@style/Theme.SamStudioApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        
         <activity
             android:name=".presentation.insights.InsightsActivity"
             android:exported="false"
@@ -46,11 +62,13 @@
             </intent-filter>
         </receiver>
         
-        <!-- Overlay Popup Service -->
+        <!-- Enhanced Overlay Popup Service -->
         <service
             android:name=".ui.OverlayPopupService"
             android:enabled="true"
-            android:exported="false" />
+            android:exported="false"
+            android:foregroundServiceType="systemExempted" />
+            
     </application>
 
 </manifest>
