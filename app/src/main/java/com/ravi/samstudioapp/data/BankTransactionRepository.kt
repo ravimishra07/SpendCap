@@ -14,8 +14,11 @@ class BankTransactionRepository(private val dao: BankTransactionDao) {
     suspend fun getByDateRange(start: Long, end: Long): List<BankTransaction> = withContext(Dispatchers.IO) {
         dao.getByDateRange(start, end)
     }
-    suspend fun findExactTransaction(id: Int): BankTransaction? = withContext(Dispatchers.IO) {
-        dao.findExactTransaction(id)
+    suspend fun findExactTransaction(messageTime: Long): BankTransaction? = withContext(Dispatchers.IO) {
+        dao.findExactTransaction(messageTime)
+    }
+    suspend fun getExistingMessageTimes(messageTimes: List<Long>): List<Long> = withContext(Dispatchers.IO) {
+        dao.getExistingMessageTimes(messageTimes)
     }
     suspend fun update(transaction: BankTransaction) = withContext(Dispatchers.IO) {
         dao.update(transaction)

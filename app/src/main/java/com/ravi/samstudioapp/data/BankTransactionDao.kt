@@ -18,8 +18,11 @@ interface BankTransactionDao {
     @Query("SELECT * FROM bank_transactions WHERE messageTime BETWEEN :start AND :end ORDER BY messageTime DESC")
     suspend fun getByDateRange(start: Long, end: Long): List<BankTransaction>
 
-    @Query("SELECT * FROM bank_transactions WHERE id = :id LIMIT 1")
-    suspend fun findExactTransaction(id: Int): BankTransaction?
+    @Query("SELECT * FROM bank_transactions WHERE messageTime = :messageTime LIMIT 1")
+    suspend fun findExactTransaction(messageTime: Long): BankTransaction?
+
+    @Query("SELECT messageTime FROM bank_transactions WHERE messageTime IN (:messageTimes)")
+    suspend fun getExistingMessageTimes(messageTimes: List<Long>): List<Long>
 
     @Update
     suspend fun update(transaction: BankTransaction)

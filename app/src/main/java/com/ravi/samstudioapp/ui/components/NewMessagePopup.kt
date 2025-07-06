@@ -16,15 +16,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
+import com.ravi.samstudioapp.ui.categoryDefs
 import java.text.SimpleDateFormat
 import java.util.*
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewMessagePopup(
     transaction: ParsedSmsTransaction,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onSave: (BankTransaction) -> Unit
 ) {
+    var amount by remember { mutableStateOf(transaction.amount.toString()) }
+    var bankName by remember { mutableStateOf(transaction.bankName) }
+    var message by remember { mutableStateOf(transaction.rawMessage) }
+    var expanded by remember { mutableStateOf(false) }
+    val categories = categoryDefs.map { it.name }
+    var selectedCategory by remember { mutableStateOf(categories.find { it.equals("Other", true) } ?: categories.first()) }
+    
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -73,7 +84,7 @@ fun NewMessagePopup(
                     
                     Spacer(modifier = Modifier.height(16.dp))
                     
-                    // Transaction details
+                    // Editable fields
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(8.dp),
@@ -84,22 +95,104 @@ fun NewMessagePopup(
                         Column(
                             modifier = Modifier.padding(16.dp)
                         ) {
-                            Row(
+                            // Amount field
+                            OutlinedTextField(
+                                value = amount,
+                                onValueChange = { amount = it },
+                                label = { Text("Amount", color = Color.White) },
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.White,
+                                    unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                    focusedLabelColor = Color.White,
+                                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Bank name field
+                            OutlinedTextField(
+                                value = bankName,
+                                onValueChange = { bankName = it },
+                                label = { Text("Bank Name", color = Color.White) },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.White,
+                                    unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                    focusedLabelColor = Color.White,
+                                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Message field
+                            OutlinedTextField(
+                                value = message,
+                                onValueChange = { message = it },
+                                label = { Text("Message", color = Color.White) },
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 3,
+                                maxLines = 5,
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = Color.White,
+                                    unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                    focusedLabelColor = Color.White,
+                                    unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                )
+                            )
+                            
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            // Category dropdown
+                            ExposedDropdownMenuBox(
+                                expanded = expanded,
+                                onExpandedChange = { expanded = !expanded }
                             ) {
-                                Text("Amount:", color = Color.White, fontSize = 16.sp)
-                                Text("₹${transaction.amount}", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                OutlinedTextField(
+                                    value = selectedCategory,
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Category", color = Color.White) },
+                                    trailingIcon = {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                                    },
+                                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White,
+                                        focusedBorderColor = Color.White,
+                                        unfocusedBorderColor = Color.White.copy(alpha = 0.7f),
+                                        focusedLabelColor = Color.White,
+                                        unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                                    )
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    categories.forEach { category ->
+                                        DropdownMenuItem(
+                                            text = { Text(category) },
+                                            onClick = {
+                                                selectedCategory = category
+                                                expanded = false
+                                            }
+                                        )
+                                    }
+                                }
                             }
                             
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text("Bank:", color = Color.White, fontSize = 16.sp)
-                                Text(transaction.bankName, color = Color.White, fontSize = 16.sp)
-                            }
+                            Spacer(modifier = Modifier.height(8.dp))
                             
+                            // Time display (read-only)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
@@ -115,36 +208,47 @@ fun NewMessagePopup(
                         }
                     }
                     
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    // Message preview
-                    Text(
-                        text = "Message:",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    
-                    Text(
-                        text = transaction.rawMessage,
-                        color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 12.sp,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                    
                     Spacer(modifier = Modifier.height(24.dp))
                     
-                    // Dismiss button
-                    Button(
-                        onClick = onDismiss,
+                    // Action buttons
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Color(0xFF2196F3)
-                        )
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("OK")
+                        // Cancel button
+                        Button(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White.copy(alpha = 0.3f),
+                                contentColor = Color.White
+                            )
+                        ) {
+                            Text("Cancel")
+                        }
+                        
+                        // Save button
+                        Button(
+                            onClick = {
+                                val amountValue = amount.toDoubleOrNull() ?: transaction.amount
+                                val bankTransaction = BankTransaction(
+                                    amount = amountValue,
+                                    bankName = bankName,
+                                    tags = message,
+                                    messageTime = transaction.messageTime,
+                                    category = selectedCategory,
+                                    verified = true
+                                )
+                                onSave(bankTransaction)
+                            },
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Color(0xFF2196F3)
+                            )
+                        ) {
+                            Text("Save")
+                        }
                     }
                 }
             }

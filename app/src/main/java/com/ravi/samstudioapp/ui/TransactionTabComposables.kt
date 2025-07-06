@@ -33,7 +33,7 @@ private val LightGray = androidx.compose.ui.graphics.Color(0xFFE0E0E0)
 
 @Composable
 fun MainTabIndicator(tabPositions: List<TabPosition>, selectedTabIndex: Int) {
-    TabRowDefaults.Indicator(
+    TabRowDefaults.SecondaryIndicator(
         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
         height = 2.dp,
         color = LightGray
@@ -157,8 +157,8 @@ fun TransactionTabContent(
                     iconColor = color as Color,
                     subTypes = txns.map {
                         ExpenseSubType(
-                            it.id,
-                            "Txn ${it.id}",
+                            it.messageTime.toInt(),
+                            "Txn ${it.messageTime}",
                             it.amount
                         )
                     }

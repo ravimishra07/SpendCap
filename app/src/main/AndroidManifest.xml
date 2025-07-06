@@ -62,13 +62,6 @@
             </intent-filter>
         </receiver>
         
-        <!-- Enhanced Overlay Popup Service -->
-        <service
-            android:name=".ui.OverlayPopupService"
-            android:enabled="true"
-            android:exported="false"
-            android:foregroundServiceType="systemExempted" />
-            
     </application>
 
 </manifest>

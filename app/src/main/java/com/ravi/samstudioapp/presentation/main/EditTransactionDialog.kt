@@ -53,11 +53,10 @@ fun EditTransactionDialog(
             Button(onClick = {
                 val amt = amount.toDoubleOrNull() ?: 0.0
                 val txn = BankTransaction(
-                    id = transaction?.id ?: 0,
+                    messageTime = transaction?.messageTime ?: System.currentTimeMillis(),
                     amount = amt,
                     tags = type,
                     bankName = bankName,
-                    messageTime = transaction?.messageTime ?: System.currentTimeMillis(),
                     count = transaction?.count
                 )
                 onSave(txn)

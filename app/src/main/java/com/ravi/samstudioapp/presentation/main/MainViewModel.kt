@@ -12,6 +12,7 @@ import com.ravi.samstudioapp.domain.usecase.GetBankTransactionsByDateRangeUseCas
 import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
+import com.ravi.samstudioapp.domain.usecase.GetExistingMessageTimesUseCase
 import com.ravi.samstudioapp.utils.readAndParseSms
 import com.ravi.samstudioapp.utils.MessageParser
 import com.ravi.samstudioapp.ui.DateRangeMode
@@ -30,7 +31,8 @@ class MainViewModel(
     private val getByDateRange: GetBankTransactionsByDateRangeUseCase,
     private val insertTransaction: InsertBankTransactionUseCase,
     private val updateTransactionUseCase: UpdateBankTransactionUseCase,
-    private val findExactTransaction: FindExactBankTransactionUseCase
+    private val findExactTransaction: FindExactBankTransactionUseCase,
+    private val getExistingMessageTimes: GetExistingMessageTimesUseCase
 ) : ViewModel() {
     private val _transactions = MutableStateFlow<List<BankTransaction>>(emptyList())
     val transactions: StateFlow<List<BankTransaction>> = _transactions
@@ -145,11 +147,9 @@ class MainViewModel(
         viewModelScope.launch {
             try {
                 _isLoading.value = true
-                if (transaction.id == 0) {
-                    insertTransaction(transaction)
-                } else {
-                    updateTransactionUseCase(transaction)
-                }
+                // Since messageTime is now the primary key, we can directly insert/update
+                // Room will handle conflicts based on the primary key
+                insertTransaction(transaction)
                 loadAllTransactions()
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error saving transaction", e)
@@ -167,43 +167,33 @@ class MainViewModel(
     fun findAndOverwriteTransaction(transaction: BankTransaction) {
         viewModelScope.launch {
             try {
-                Log.d("MainViewModel", "findAndOverwriteTransaction: Starting search for transaction with ID: ${transaction.id}")
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Starting search for transaction with messageTime: ${transaction.messageTime}")
                 Log.d("MainViewModel", "findAndOverwriteTransaction: Transaction details - Amount: ${transaction.amount}, Bank: ${transaction.bankName}, Tags: ${transaction.tags}")
                 _isLoading.value = true
                 
-                // Check if transaction has a valid ID
-                if (transaction.id <= 0) {
-                    Log.d("MainViewModel", "findAndOverwriteTransaction: Transaction has no valid ID, inserting as new")
+                // Use IO dispatcher for database operations
+                val existingTransaction = withContext(Dispatchers.IO) {
+                    findExactTransaction(transaction.messageTime)
+                }
+                
+                if (existingTransaction != null) {
+                    Log.d("MainViewModel", "findAndOverwriteTransaction: Found existing transaction with messageTime: ${existingTransaction.messageTime}")
+                    Log.d("MainViewModel", "findAndOverwriteTransaction: Existing transaction - Amount: ${existingTransaction.amount}, Bank: ${existingTransaction.bankName}, Tags: ${existingTransaction.tags}")
+                    
+                    // Update the transaction in database using IO dispatcher
+                    withContext(Dispatchers.IO) {
+                        updateTransactionUseCase(transaction)
+                    }
+                    
+                    Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully overwrote transaction")
+                } else {
+                    Log.d("MainViewModel", "findAndOverwriteTransaction: No transaction found with messageTime ${transaction.messageTime}, inserting as new")
+                    
+                    // If no transaction found with this messageTime, insert as new transaction
                     withContext(Dispatchers.IO) {
                         insertTransaction(transaction)
                     }
-                    Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully inserted new transaction")
-                } else {
-                    // Use IO dispatcher for database operations
-                    val existingTransaction = withContext(Dispatchers.IO) {
-                        findExactTransaction(transaction.id)
-                    }
-                    
-                    if (existingTransaction != null) {
-                        Log.d("MainViewModel", "findAndOverwriteTransaction: Found existing transaction with ID: ${existingTransaction.id}")
-                        Log.d("MainViewModel", "findAndOverwriteTransaction: Existing transaction - Amount: ${existingTransaction.amount}, Bank: ${existingTransaction.bankName}, Tags: ${existingTransaction.tags}")
-                        
-                        // Update the transaction in database using IO dispatcher
-                        withContext(Dispatchers.IO) {
-                            updateTransactionUseCase(transaction)
-                        }
-                        
-                        Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully overwrote transaction")
-                    } else {
-                        Log.d("MainViewModel", "findAndOverwriteTransaction: No transaction found with ID ${transaction.id}, inserting as new")
-                        
-                        // If no transaction found with this ID, insert as new transaction
-                        val newTransaction = transaction.copy(id = 0) // Reset ID to auto-generate
-                        withContext(Dispatchers.IO) {
-                            insertTransaction(newTransaction)
-                        }
-                        Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully inserted new transaction (ID not found)")
-                    }
+                    Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully inserted new transaction (messageTime not found)")
                 }
                 
                 Log.d("MainViewModel", "findAndOverwriteTransaction: Reloading data...")
@@ -235,7 +225,7 @@ class MainViewModel(
         findAndOverwriteTransaction(transaction)
     }
 
-    fun syncFromSms(context: Context) {
+    fun syncFromSms(context: Context, onComplete: ((Int) -> Unit)? = null) {
         Log.d("SamStudio", "syncFromSms: Starting sync process")
         viewModelScope.launch {
             Log.d("SamStudio", "syncFromSms: Setting loading to true")
@@ -248,10 +238,6 @@ class MainViewModel(
                 }
                 Log.d("SamStudio", "syncFromSms: SMS parsing completed, found ${smsTxns.size} transactions")
                 
-                Log.d("SamStudio", "syncFromSms: Getting existing transactions")
-                val existing = withContext(Dispatchers.IO) { getAllTransactions() }
-                Log.d("SamStudio", "syncFromSms: Found ${existing.size} existing transactions")
-                
                 Log.d("SamStudio", "syncFromSms: Mapping SMS transactions to BankTransactions")
                 val newTxns = smsTxns.map { sms ->
                     BankTransaction(
@@ -261,14 +247,25 @@ class MainViewModel(
                         tags = sms.rawMessage,
                         count = null
                     )
-                }.filter { txn ->
-                    existing.none { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
                 }
-                Log.d("SamStudio", "syncFromSms: After filtering duplicates, ${newTxns.size} new transactions to insert")
+                
+                // Efficiently check for existing messageTimes in bulk
+                val messageTimesToCheck = newTxns.map { it.messageTime }
+                Log.d("SamStudio", "syncFromSms: Checking ${messageTimesToCheck.size} message times for duplicates")
+                val existingMessageTimes = withContext(Dispatchers.IO) { 
+                    getExistingMessageTimes(messageTimesToCheck) 
+                }
+                Log.d("SamStudio", "syncFromSms: Found ${existingMessageTimes.size} existing message times")
+                
+                // Filter out transactions that already exist
+                val uniqueTxns = newTxns.filter { txn ->
+                    !existingMessageTimes.contains(txn.messageTime)
+                }
+                Log.d("SamStudio", "syncFromSms: After filtering duplicates by messageTime, ${uniqueTxns.size} new transactions to insert")
                 
                 // Batch insert if possible, else insert one by one
                 Log.d("SamStudio", "syncFromSms: Starting to insert new transactions")
-                newTxns.forEach { txn -> 
+                uniqueTxns.forEach { txn -> 
                     Log.d("SamStudio", "syncFromSms: Inserting transaction: ${txn.amount} from ${txn.bankName}")
                     withContext(Dispatchers.IO) { insertTransaction(txn) } 
                 }
@@ -278,11 +275,15 @@ class MainViewModel(
                 loadSmsTransactions()
                 updateFilteredSmsTransactions()
                 Log.d("SamStudio", "syncFromSms: Sync completed successfully")
+                
+                // Call completion callback with number of new transactions
+                onComplete?.invoke(uniqueTxns.size)
             } catch (e: Exception) {
                 Log.e("SamStudio", "syncFromSms: Error syncing SMS", e)
                 Log.e("SamStudio", "syncFromSms: Error message: ${e.message}")
                 Log.e("SamStudio", "syncFromSms: Error stack trace: ${e.stackTraceToString()}")
-                // Optionally update an error state or show a Toast
+                // Call completion callback with error (-1 indicates error)
+                onComplete?.invoke(-1)
             } finally {
                 Log.d("SamStudio", "syncFromSms: Setting loading to false")
                 _isLoading.value = false
@@ -487,19 +488,12 @@ class MainViewModel(
         viewModelScope.launch {
             try {
                 Log.d("MainViewModel", "New SMS received: $messageBody")
-                
                 // Use same parsing logic as SmsUtils.kt
                 val parsedTransaction = MessageParser.parseNewMessage(messageBody, timestamp)
-                
                 if (parsedTransaction != null) {
                     Log.d("MainViewModel", "Parsed transaction: ₹${parsedTransaction.amount} from ${parsedTransaction.bankName}")
-                    
                     // Show popup for new transaction
                     _newMessageDetected.value = parsedTransaction
-                    
-                    // Auto-dismiss popup after 5 seconds
-                    kotlinx.coroutines.delay(5000)
-                    _newMessageDetected.value = null
                 }
             } catch (e: Exception) {
                 Log.e("MainViewModel", "Error handling new SMS", e)
@@ -520,27 +514,5 @@ class MainViewModel(
      */
     fun dismissNewMessagePopup() {
         _newMessageDetected.value = null
-    }
-    
-    fun testOverlayService(context: Context) {
-        Log.d("MainViewModel", "Testing overlay service...")
-        
-        try {
-            val serviceIntent = Intent(context, com.ravi.samstudioapp.ui.OverlayPopupService::class.java).apply {
-                putExtra(com.ravi.samstudioapp.ui.OverlayPopupService.EXTRA_MESSAGE, "Test Transaction Alert!")
-                putExtra(com.ravi.samstudioapp.ui.OverlayPopupService.EXTRA_BANK, "Test Bank")
-                putExtra(com.ravi.samstudioapp.ui.OverlayPopupService.EXTRA_AMOUNT, "₹1,000")
-            }
-            
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
-            } else {
-                context.startService(serviceIntent)
-            }
-            Log.d("MainViewModel", "✅ Test overlay service started successfully")
-            
-        } catch (e: Exception) {
-            Log.e("MainViewModel", "❌ Failed to start test overlay service", e)
-        }
     }
 } 

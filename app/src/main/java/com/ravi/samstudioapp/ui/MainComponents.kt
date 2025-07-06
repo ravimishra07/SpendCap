@@ -59,7 +59,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -758,85 +758,85 @@ fun SpendBarGraph(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewSpendBarGraph() {
-    val now = System.currentTimeMillis()
-    val dummyTransactions = listOf(
-        BankTransaction(
-            1,
-            100.0,
-            "HDFC",
-            "Food",
-            now - 6 * 24 * 60 * 60 * 1000,
-            null,
-            "Food",
-            false
-        ),
-        BankTransaction(
-            2,
-            200.0,
-            "ICICI",
-            "Travel",
-            now - 5 * 24 * 60 * 60 * 1000,
-            null,
-            "Travel",
-            false
-        ),
-        BankTransaction(
-            3,
-            50.0,
-            "SBI",
-            "Cigarette",
-            now - 4 * 24 * 60 * 60 * 1000,
-            null,
-            "Cigarette",
-            false
-        ),
-        BankTransaction(
-            4,
-            80.0,
-            "Axis",
-            "Food",
-            now - 3 * 24 * 60 * 60 * 1000,
-            null,
-            "Food",
-            false
-        ),
-        BankTransaction(
-            5,
-            120.0,
-            "Kotak",
-            "Other",
-            now - 2 * 24 * 60 * 60 * 1000,
-            null,
-            "Other",
-            false
-        ),
-        BankTransaction(
-            6,
-            60.0,
-            "HDFC",
-            "Food",
-            now - 1 * 24 * 60 * 60 * 1000,
-            null,
-            "Food",
-            false
-        ),
-        BankTransaction(7, 90.0, "ICICI", "Travel", now, null, "Travel", false)
-    )
-    val dateRange = Pair(now - 6 * 24 * 60 * 60 * 1000, now)
-    SamStudioAppTheme {
-        SpendBarGraph(
-            transactions = dummyTransactions,
-            dateRange = dateRange,
-            mode = DateRangeMode.WEEKLY,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        )
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun PreviewSpendBarGraph() {
+//    val now = System.currentTimeMillis()
+//    val dummyTransactions = listOf(
+//        BankTransaction(
+//            1,
+//            100.0,
+//            "HDFC",
+//            "Food",
+//            now - 6 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Food",
+//            false
+//        ),
+//        BankTransaction(
+//            2,
+//            200.0,
+//            "ICICI",
+//            "Travel",
+//            now - 5 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Travel",
+//            false
+//        ),
+//        BankTransaction(
+//            3,
+//            50.0,
+//            "SBI",
+//            "Cigarette",
+//            now - 4 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Cigarette",
+//            false
+//        ),
+//        BankTransaction(
+//            4,
+//            80.0,
+//            "Axis",
+//            "Food",
+//            now - 3 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Food",
+//            false
+//        ),
+//        BankTransaction(
+//            5,
+//            120.0,
+//            "Kotak",
+//            "Other",
+//            now - 2 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Other",
+//            false
+//        ),
+//        BankTransaction(
+//            6,
+//            60.0,
+//            "HDFC",
+//            "Food",
+//            now - 1 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Food",
+//            false
+//        ),
+//        BankTransaction(7, 90.0, "ICICI", "Travel", now, null, "Travel", false)
+//    )
+//    val dateRange = Pair(now - 6 * 24 * 60 * 60 * 1000, now)
+//    SamStudioAppTheme {
+//        SpendBarGraph(
+//            transactions = dummyTransactions,
+//            dateRange = dateRange,
+//            mode = DateRangeMode.WEEKLY,
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(16.dp)
+//        )
+//    }
+//}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -844,10 +844,6 @@ fun LoadMainScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
 
     // UI state only
-    var showEditSheet by remember { mutableStateOf(false) }
-    var editId by remember { mutableStateOf<Int?>(null) }
-    var editAmount by remember { mutableStateOf("") }
-    var editType by remember { mutableStateOf("") }
     var editingTransaction by remember { mutableStateOf<BankTransaction?>(null) }
     var showDialog by remember { mutableStateOf(false) }
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -918,7 +914,13 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                             // Check cached permission state first
                             if (PermissionManager.isSmsPermissionGranted()) {
                                 Log.d("SamStudio", "UI: Permission already granted, starting sync")
-                                viewModel.syncFromSms(context)
+                                viewModel.syncFromSms(context) { newTransactionCount ->
+                                    when (newTransactionCount) {
+                                        -1 -> Toast.makeText(context, "Sync failed", Toast.LENGTH_SHORT).show()
+                                        0 -> Toast.makeText(context, "No new transactions found", Toast.LENGTH_SHORT).show()
+                                        else -> Toast.makeText(context, "Sync completed: $newTransactionCount new transactions", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             } else {
                                 // Check actual permission status
                                 val permissionGranted = ContextCompat.checkSelfPermission(
@@ -930,7 +932,13 @@ fun LoadMainScreen(viewModel: MainViewModel) {
 
                                 if (permissionGranted) {
                                     Log.d("SamStudio", "UI: Permission granted, calling viewModel.syncFromSms")
-                                    viewModel.syncFromSms(context)
+                                    viewModel.syncFromSms(context) { newTransactionCount ->
+                                        when (newTransactionCount) {
+                                            -1 -> Toast.makeText(context, "Sync failed", Toast.LENGTH_SHORT).show()
+                                            0 -> Toast.makeText(context, "No new transactions found", Toast.LENGTH_SHORT).show()
+                                            else -> Toast.makeText(context, "Sync completed: $newTransactionCount new transactions", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
                                     Log.d("SamStudio", "UI: viewModel.syncFromSms called successfully")
                                 } else {
                                     Log.d("SamStudio", "UI: Permission not granted, requesting SMS permission...")
@@ -1048,77 +1056,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                 }
             }
             
-            // Show bottom sheet for editing (must be inside setContent)
-            if (showEditSheet && editId != null) {
-                ModalBottomSheet(
-                    onDismissRequest = { showEditSheet = false }
-                ) {
-                    Column(Modifier.padding(24.dp)) {
-                        Text("Edit Transaction", style = MaterialTheme.typography.titleLarge)
-                        Spacer(Modifier.height(16.dp))
-                        androidx.compose.material3.OutlinedTextField(
-                            value = editAmount,
-                            onValueChange = {
-                                editAmount = it.filter { ch -> ch.isDigit() || ch == '.' }
-                            },
-                            label = { Text("Amount") },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number
-                            ),
-                            singleLine = true
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        val typeOptions = categories.map { it.first }
-                        var expanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expanded,
-                            onExpandedChange = { expanded = !expanded }
-                        ) {
-                            androidx.compose.material3.OutlinedTextField(
-                                value = editType,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Type") },
-                                trailingIcon = { Icons.Filled.KeyboardArrowDown },
-                                modifier = Modifier
-                                    .width(180.dp)
-                                    .menuAnchor()
-                                    .clickable { expanded = true }
-                            )
-                            androidx.compose.material3.DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                typeOptions.forEach { type ->
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(type) },
-                                        onClick = {
-                                            editType = type
-                                            expanded = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { showEditSheet = false }) { Text("Cancel") }
-                            Spacer(Modifier.width(8.dp))
-                            TextButton(onClick = {
-                                val amt = editAmount.toDoubleOrNull()
-                                if (amt != null && editType.isNotBlank() && editId != null) {
-                                    val txn = transactions.find { it.id == editId }
-                                    if (txn != null) {
-                                        val updatedTxn = txn.copy(amount = amt, tags = editType)
-                                        viewModel.findAndOverwriteTransaction(updatedTxn)
-                                    }
-                                    showEditSheet = false
-                                }
-                            }) { Text("Save") }
-                        }
-                    }
-                }
-            }
+
 
             if (showDialog) {
                 EditTransactionDialog(
@@ -1136,7 +1074,11 @@ fun LoadMainScreen(viewModel: MainViewModel) {
             newMessageDetected?.let { transaction ->
                 NewMessagePopup(
                     transaction = transaction,
-                    onDismiss = { viewModel.dismissNewMessagePopup() }
+                    onDismiss = { viewModel.dismissNewMessagePopup() },
+                    onSave = { bankTransaction ->
+                        viewModel.findAndOverwriteTransaction(bankTransaction)
+                        viewModel.dismissNewMessagePopup()
+                    }
                 )
             }
             
@@ -1423,7 +1365,7 @@ fun TransactionList(
                                                     MaterialTheme.colorScheme.onSurface
                                             )
                                             if (category != categoryDefs.last()) {
-                                                Divider()
+                                                HorizontalDivider()
                                             }
                                         }
                                     }
