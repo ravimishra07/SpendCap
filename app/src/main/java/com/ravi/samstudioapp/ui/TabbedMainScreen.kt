@@ -65,7 +65,7 @@ fun TabbedMainScreen(
             smsTransactions = filteredSmsTransactions,
             bankTransactions = transactions,
             onEdit = { transaction ->
-                viewModel.updateTransaction(transaction)
+                viewModel.findAndOverwriteTransaction(transaction)
             }
         )
 
@@ -87,7 +87,7 @@ fun TabbedMainScreen(
                     smsTransactions = filteredSmsTransactions,
                     bankTransactions = transactions,
                     onEdit = { transaction ->
-                        viewModel.updateTransaction(transaction)
+                        viewModel.findAndOverwriteTransaction(transaction)
                     }
                 )
             }

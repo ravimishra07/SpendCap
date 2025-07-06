@@ -10,6 +10,7 @@ import com.ravi.samstudioapp.domain.usecase.GetAllBankTransactionsUseCase
 import com.ravi.samstudioapp.domain.usecase.GetBankTransactionsByDateRangeUseCase
 import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
+import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.presentation.main.MainViewModelFactory
 
@@ -27,10 +28,11 @@ object VmInjector {
             val getByRange = GetBankTransactionsByDateRangeUseCase(repo)
             val insert = InsertBankTransactionUseCase(repo)
             val update = UpdateBankTransactionUseCase(repo)
+            val findExact = FindExactBankTransactionUseCase(repo)
 
             _viewModel = ViewModelProvider(
                 owner,
-                MainViewModelFactory(getAll, getByRange, insert, update)
+                MainViewModelFactory(getAll, getByRange, insert, update, findExact)
             )[MainViewModel::class.java]
         }
         return _viewModel!!

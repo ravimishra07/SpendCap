@@ -10,6 +10,7 @@ import com.ravi.samstudioapp.domain.usecase.GetAllBankTransactionsUseCase
 import com.ravi.samstudioapp.domain.usecase.GetBankTransactionsByDateRangeUseCase
 import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
+import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.utils.readAndParseSms
 import com.ravi.samstudioapp.ui.DateRangeMode
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,8 @@ class MainViewModel(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
     private val getByDateRange: GetBankTransactionsByDateRangeUseCase,
     private val insertTransaction: InsertBankTransactionUseCase,
-    private val updateTransaction: UpdateBankTransactionUseCase
+    private val updateTransactionUseCase: UpdateBankTransactionUseCase,
+    private val findExactTransaction: FindExactBankTransactionUseCase
 ) : ViewModel() {
     private val _transactions = MutableStateFlow<List<BankTransaction>>(emptyList())
     val transactions: StateFlow<List<BankTransaction>> = _transactions
@@ -106,16 +108,122 @@ class MainViewModel(
 
     fun addTransaction(transaction: BankTransaction) {
         viewModelScope.launch {
-            insertTransaction(transaction)
-            loadAllTransactions()
+            try {
+                insertTransaction(transaction)
+                // Only reload if we're not already in a loading state
+                if (!_isLoading.value) {
+                    loadAllTransactions()
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error adding transaction", e)
+            }
         }
     }
 
     fun updateTransaction(transaction: BankTransaction) {
-        viewModelScope.launch {
-            updateTransaction(transaction)
-            loadAllTransactions()
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                updateTransactionUseCase(transaction)
+                loadAllTransactions()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error updating transaction", e)
+            }
         }
+    }
+
+    // Add a new method to handle both add and update in a single operation
+    fun saveTransaction(transaction: BankTransaction) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                if (transaction.id == 0) {
+                    insertTransaction(transaction)
+                } else {
+                    updateTransactionUseCase(transaction)
+                }
+                loadAllTransactions()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error saving transaction", e)
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Finds exact BankTransaction entry from database and overwrites it
+     * Uses proper coroutines and threading for database operations
+     * @param transaction The BankTransaction to find and overwrite
+     */
+    fun findAndOverwriteTransaction(transaction: BankTransaction) {
+        viewModelScope.launch {
+            try {
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Starting search for transaction with ID: ${transaction.id}")
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Transaction details - Amount: ${transaction.amount}, Bank: ${transaction.bankName}, Tags: ${transaction.tags}")
+                _isLoading.value = true
+                
+                // Check if transaction has a valid ID
+                if (transaction.id <= 0) {
+                    Log.d("MainViewModel", "findAndOverwriteTransaction: Transaction has no valid ID, inserting as new")
+                    withContext(Dispatchers.IO) {
+                        insertTransaction(transaction)
+                    }
+                    Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully inserted new transaction")
+                } else {
+                    // Use IO dispatcher for database operations
+                    val existingTransaction = withContext(Dispatchers.IO) {
+                        findExactTransaction(transaction.id)
+                    }
+                    
+                    if (existingTransaction != null) {
+                        Log.d("MainViewModel", "findAndOverwriteTransaction: Found existing transaction with ID: ${existingTransaction.id}")
+                        Log.d("MainViewModel", "findAndOverwriteTransaction: Existing transaction - Amount: ${existingTransaction.amount}, Bank: ${existingTransaction.bankName}, Tags: ${existingTransaction.tags}")
+                        
+                        // Update the transaction in database using IO dispatcher
+                        withContext(Dispatchers.IO) {
+                            updateTransactionUseCase(transaction)
+                        }
+                        
+                        Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully overwrote transaction")
+                    } else {
+                        Log.d("MainViewModel", "findAndOverwriteTransaction: No transaction found with ID ${transaction.id}, inserting as new")
+                        
+                        // If no transaction found with this ID, insert as new transaction
+                        val newTransaction = transaction.copy(id = 0) // Reset ID to auto-generate
+                        withContext(Dispatchers.IO) {
+                            insertTransaction(newTransaction)
+                        }
+                        Log.d("MainViewModel", "findAndOverwriteTransaction: Successfully inserted new transaction (ID not found)")
+                    }
+                }
+                
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Reloading data...")
+                // Reload transactions to reflect changes
+                loadAllTransactions()
+                loadSmsTransactions()
+                updateFilteredSmsTransactions()
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Data reload completed")
+                
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "findAndOverwriteTransaction: Error finding/overwriting transaction", e)
+                Log.e("MainViewModel", "findAndOverwriteTransaction: Error message: ${e.message}")
+                Log.e("MainViewModel", "findAndOverwriteTransaction: Error stack trace: ${e.stackTraceToString()}")
+            } finally {
+                _isLoading.value = false
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Operation completed")
+            }
+        }
+    }
+
+    /**
+     * Example usage function that demonstrates how to use findAndOverwriteTransaction
+     * This function takes a BankTransaction and finds the exact entry to overwrite
+     */
+    fun processBankTransaction(transaction: BankTransaction) {
+        Log.d("MainViewModel", "processBankTransaction: Processing transaction - Amount: ${transaction.amount}, Bank: ${transaction.bankName}")
+        
+        // Use the findAndOverwriteTransaction function with proper coroutines and threading
+        findAndOverwriteTransaction(transaction)
     }
 
     fun syncFromSms(context: Context) {

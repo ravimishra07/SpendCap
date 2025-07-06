@@ -1008,7 +1008,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                                 smsTransactions = filteredSmsTransactions,
                                 bankTransactions = transactions,
                                 onEdit = { transaction ->
-                                    viewModel.updateTransaction(transaction)
+                                    viewModel.findAndOverwriteTransaction(transaction)
                                 }
                             )
                         }
@@ -1111,7 +1111,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                                     val txn = transactions.find { it.id == editId }
                                     if (txn != null) {
                                         val updatedTxn = txn.copy(amount = amt, tags = editType)
-                                        viewModel.updateTransaction(updatedTxn)
+                                        viewModel.findAndOverwriteTransaction(updatedTxn)
                                     }
                                     showEditSheet = false
                                 }
@@ -1126,9 +1126,8 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     transaction = editingTransaction,
                     onDismiss = { showDialog = false },
                     onSave = {
-                        if (it.id == 0) viewModel.addTransaction(it) else viewModel.updateTransaction(
-                            it
-                        )
+                      //  viewModel.saveTransaction(it)
+                        viewModel.findAndOverwriteTransaction(it)
                         showDialog = false
                     }
                 )

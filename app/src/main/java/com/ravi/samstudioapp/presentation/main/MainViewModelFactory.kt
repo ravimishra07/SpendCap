@@ -6,12 +6,14 @@ import com.ravi.samstudioapp.domain.usecase.GetAllBankTransactionsUseCase
 import com.ravi.samstudioapp.domain.usecase.GetBankTransactionsByDateRangeUseCase
 import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
+import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 
 class MainViewModelFactory(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
     private val getByDateRange: GetBankTransactionsByDateRangeUseCase,
     private val insertTransaction: InsertBankTransactionUseCase,
-    private val updateTransaction: UpdateBankTransactionUseCase
+    private val updateTransaction: UpdateBankTransactionUseCase,
+    private val findExactTransaction: FindExactBankTransactionUseCase
 ) : ViewModelProvider.Factory {
     
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -21,7 +23,8 @@ class MainViewModelFactory(
                 getAllTransactions,
                 getByDateRange,
                 insertTransaction,
-                updateTransaction
+                updateTransaction,
+                findExactTransaction
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
