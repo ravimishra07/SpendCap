@@ -2,6 +2,7 @@ package com.ravi.samstudioapp.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material3.*
@@ -34,6 +35,7 @@ fun TabbedMainScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .statusBarsPadding()
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 12.dp, vertical = 24.dp)
     ) {

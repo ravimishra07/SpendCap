@@ -251,209 +251,206 @@ fun CustomToolbarWithDateRange(
             .padding(horizontal = 12.dp, vertical = 8.dp)
     ) {
         // Toolbar Row
-        Card(
+        NeumorphicBorderBox(
             modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(
-                containerColor = DarkGray
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+            cornerRadius = 8.dp,
+            backgroundColor = DarkGray,
+            borderColor = Color.White.copy(alpha = 0.10f),
+            shadowElevation = 2.dp,
+            contentPadding = 12.dp
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // Title
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = LightGray
-                )
-
-                // Action Buttons Row
+                // Top Row - Title and Action Buttons
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Insights Button
+                    // Title
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = LightGray
+                    )
+
+                    // Action Buttons Row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Insights Button
+                        NeumorphicBorderBox(
+                            modifier = Modifier.size(40.dp),
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
+                        ) {
+                            IconButton(
+                                onClick = onInsightsClick,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Analytics,
+                                    contentDescription = "Insights",
+                                    tint = LightGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        
+                        // Refresh Button
+                        NeumorphicBorderBox(
+                            modifier = Modifier.size(40.dp),
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
+                        ) {
+                            IconButton(
+                                onClick = onRefreshClick,
+                                enabled = !isLoading,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = if (isLoading) "Syncing..." else "Refresh",
+                                    tint = LightGray,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer(
+                                            rotationZ = if (isLoading) rotationAnimation else 0f
+                                        )
+                                )
+                            }
+                        }
+                        
+                        // Mode Toggle Button
+                        NeumorphicBorderBox(
+                            modifier = Modifier.size(40.dp),
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    val newMode = when (mode) {
+                                        DateRangeMode.DAILY -> DateRangeMode.WEEKLY
+                                        DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
+                                        DateRangeMode.MONTHLY -> DateRangeMode.DAILY
+                                    }
+                                    onModeChange(newMode)
+                                    val cal = Calendar.getInstance()
+                                    val end = cal.timeInMillis
+                                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                                    val start = cal.timeInMillis
+                                    onDatePickerChange(start, end)
+                                    Toast.makeText(
+                                        context,
+                                        "Range changed to ${newMode.days} days",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Text(
+                                    text = mode.days.toString(),
+                                    color = LightGray,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Bottom Row - Date Navigation
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Previous Button
                     NeumorphicBorderBox(
-                        modifier = Modifier.size(40.dp),
+                        modifier = Modifier.size(36.dp),
                         cornerRadius = 4.dp,
-                        backgroundColor = DarkGray,
+                        backgroundColor = Black,
                         borderColor = Color.White.copy(alpha = 0.10f),
                         shadowElevation = 2.dp,
                         contentPadding = 0.dp
                     ) {
                         IconButton(
-                            onClick = onInsightsClick,
+                            onClick = onPrevClick,
                             modifier = Modifier.fillMaxSize()
                         ) {
                             Icon(
-                                Icons.Filled.Analytics,
-                                contentDescription = "Insights",
+                                Icons.Filled.ArrowBack,
+                                contentDescription = "Previous",
                                 tint = LightGray,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(16.dp)
                             )
                         }
                     }
                     
-                    // Refresh Button
-                    NeumorphicBorderBox(
-                        modifier = Modifier.size(40.dp),
-                        cornerRadius = 4.dp,
-                        backgroundColor = DarkGray,
-                        borderColor = Color.White.copy(alpha = 0.10f),
-                        shadowElevation = 2.dp,
-                        contentPadding = 0.dp
+                    // Date Range Display
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp),
+                        shape = MaterialTheme.shapes.small,
+                        colors = CardDefaults.cardColors(
+                            containerColor = DarkGray
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
-                        IconButton(
-                            onClick = onRefreshClick,
-                            enabled = !isLoading,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Icon(
-                                Icons.Filled.Refresh,
-                                contentDescription = if (isLoading) "Syncing..." else "Refresh",
-                                tint = LightGray,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .graphicsLayer(
-                                        rotationZ = if (isLoading) rotationAnimation else 0f
-                                    )
-                            )
-                        }
-                    }
-                    
-                    // Mode Toggle Button
-                    NeumorphicBorderBox(
-                        modifier = Modifier.size(40.dp),
-                        cornerRadius = 4.dp,
-                        backgroundColor = DarkGray,
-                        borderColor = Color.White.copy(alpha = 0.10f),
-                        shadowElevation = 2.dp,
-                        contentPadding = 0.dp
-                    ) {
-                        IconButton(
-                            onClick = {
-                                val newMode = when (mode) {
-                                    DateRangeMode.DAILY -> DateRangeMode.WEEKLY
-                                    DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
-                                    DateRangeMode.MONTHLY -> DateRangeMode.DAILY
-                                }
-                                onModeChange(newMode)
-                                val cal = Calendar.getInstance()
-                                val end = cal.timeInMillis
-                                cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-                                val start = cal.timeInMillis
-                                onDatePickerChange(start, end)
-                                Toast.makeText(
-                                    context,
-                                    "Range changed to ${newMode.days} days",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            },
-                            modifier = Modifier.fillMaxSize()
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showDateRangePicker = true },
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = mode.days.toString(),
+                                text = formattedRange,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
                                 color = LightGray,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // Date Range Row with Neumorphic Design
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(
-                containerColor = DarkGray
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Previous Button
-                NeumorphicBorderBox(
-                    modifier = Modifier.size(36.dp),
-                    cornerRadius = 4.dp,
-                    backgroundColor = Black,
-                    borderColor = Color.White.copy(alpha = 0.10f),
-                    shadowElevation = 2.dp,
-                    contentPadding = 0.dp
-                ) {
-                    IconButton(
-                        onClick = onPrevClick,
-                        modifier = Modifier.fillMaxSize()
+                    
+                    // Next Button
+                    NeumorphicBorderBox(
+                        modifier = Modifier.size(36.dp),
+                        cornerRadius = 4.dp,
+                        backgroundColor = Black,
+                        borderColor = Color.White.copy(alpha = 0.10f),
+                        shadowElevation = 2.dp,
+                        contentPadding = 0.dp
                     ) {
-                        Icon(
-                            Icons.Filled.ArrowBack,
-                            contentDescription = "Previous",
-                            tint = LightGray,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
-                }
-                
-                // Date Range Display
-                Card(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = 12.dp),
-                    shape = MaterialTheme.shapes.small,
-                    colors = CardDefaults.cardColors(
-                        containerColor = DarkGray
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Text(
-                        text = formattedRange,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontWeight = FontWeight.Medium
-                        ),
-                        color = LightGray,
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                            .clickable { showDateRangePicker = true },
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-                
-                // Next Button
-                NeumorphicBorderBox(
-                    modifier = Modifier.size(36.dp),
-                    cornerRadius = 4.dp,
-                    backgroundColor = Black,
-                    borderColor = Color.White.copy(alpha = 0.10f),
-                    shadowElevation = 2.dp,
-                    contentPadding = 0.dp
-                ) {
-                    IconButton(
-                        onClick = onNextClick,
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Icon(
-                            Icons.Filled.ArrowForward,
-                            contentDescription = "Next",
-                            tint = LightGray,
-                            modifier = Modifier.size(16.dp)
-                        )
+                        IconButton(
+                            onClick = onNextClick,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                Icons.Filled.ArrowForward,
+                                contentDescription = "Next",
+                                tint = LightGray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -886,6 +883,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .statusBarsPadding()
                     //.background(MaterialTheme.colorScheme.background)
                     .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
@@ -1230,15 +1228,17 @@ fun TransactionList(
                             }
                         }
                         
-                        Card(
+                        NeumorphicBorderBox(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 2.dp, horizontal = 8.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                            shape = MaterialTheme.shapes.medium,
-                            colors = CardDefaults.cardColors(containerColor = DarkGray)
+                            cornerRadius = 8.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 12.dp
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
+                            Column(modifier = Modifier.fillMaxSize()) {
                                 val dateTime = remember(txn.messageTime, dateTimeFormat) {
                                     dateTimeFormat.format(Date(txn.messageTime))
                                 }

@@ -2,6 +2,7 @@ package com.ravi.samstudioapp.ui
 
 import android.content.SharedPreferences
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -42,37 +43,48 @@ fun MainTabIndicator(tabPositions: List<TabPosition>, selectedTabIndex: Int) {
 @Composable
 fun MainTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     val tabs = listOf("Transactions", "Insights")
-    TabRow(
-        selectedTabIndex = selectedTabIndex,
-        indicator = { tabPositions ->
-            MainTabIndicator(tabPositions, selectedTabIndex)
-        },
-        containerColor = Black,
-        contentColor = LightGray,
+    
+    // NeumorphicBorderBox wrapper for the entire tab row
+    NeumorphicBorderBox(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp)
             .height(48.dp),
-        divider = {}
+        cornerRadius = 8.dp,
+        backgroundColor = Black,
+        borderColor = Color.White.copy(alpha = 0.10f),
+        shadowElevation = 2.dp,
+        contentPadding = 0.dp
     ) {
-        tabs.forEachIndexed { index, title ->
-            Tab(
-                selected = selectedTabIndex == index,
-                onClick = { onTabSelected(index) },
-                modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .height(40.dp),
-                text = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (selectedTabIndex == index)
-                            LightGray
-                        else
-                            LightGray.copy(alpha = 0.5f)
-                    )
-                }
-            )
+        TabRow(
+            selectedTabIndex = selectedTabIndex,
+            indicator = { tabPositions ->
+                MainTabIndicator(tabPositions, selectedTabIndex)
+            },
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            contentColor = LightGray,
+            modifier = Modifier.fillMaxSize(),
+            divider = {}
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { onTabSelected(index) },
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .height(40.dp),
+                    text = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (selectedTabIndex == index)
+                                LightGray
+                            else
+                                LightGray.copy(alpha = 0.5f)
+                        )
+                    }
+                )
+            }
         }
     }
 }
