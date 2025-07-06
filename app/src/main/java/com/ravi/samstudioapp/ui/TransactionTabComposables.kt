@@ -102,7 +102,6 @@ fun ToolbarWithDateRange(
     onRefreshClick: () -> Unit,
     onInsightsClick: () -> Unit,
     isLoading: Boolean,
-    onAddDummyClick: () -> Unit,
     smsTransactions: List<ParsedSmsTransaction>,
     bankTransactions: List<BankTransaction>,
     onEdit: (BankTransaction) -> Unit
@@ -117,7 +116,6 @@ fun ToolbarWithDateRange(
         onRefreshClick = onRefreshClick,
         onInsightsClick = onInsightsClick,
         isLoading = isLoading,
-        onAddDummyClick = onAddDummyClick,
         smsTransactions = smsTransactions,
         bankTransactions = bankTransactions,
         onEdit = onEdit

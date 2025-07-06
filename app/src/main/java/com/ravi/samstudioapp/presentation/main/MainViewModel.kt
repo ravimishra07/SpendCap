@@ -1,6 +1,7 @@
 package com.ravi.samstudioapp.presentation.main
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,7 @@ import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.utils.readAndParseSms
+import com.ravi.samstudioapp.utils.MessageParser
 import com.ravi.samstudioapp.ui.DateRangeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,6 +53,12 @@ class MainViewModel(
 
     private val _prevRange = MutableStateFlow<Pair<Long, Long>?>(null)
     val prevRange: StateFlow<Pair<Long, Long>?> = _prevRange
+
+    // Real-time message detection state
+    private val _newMessageDetected = MutableStateFlow<ParsedSmsTransaction?>(null)
+    val newMessageDetected: StateFlow<ParsedSmsTransaction?> = _newMessageDetected
+    
+
 
     // Constants for SharedPreferences
     companion object {
@@ -393,31 +401,31 @@ class MainViewModel(
                 BankTransaction(
                     amount = 100.0,
                     bankName = "HDFC",
-                    tags = "Food",
+                    tags = "Transaction successful! Your account has been credited with Rs.100",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 200.0,
                     bankName = "ICICI",
-                    tags = "Travel",
+                    tags = "Low balance alert! Your account balance is insufficient for this transaction",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 50.0,
                     bankName = "SBI",
-                    tags = "Cigarette",
+                    tags = "OTP verification required for transaction of Rs.50",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 80.0,
                     bankName = "Axis",
-                    tags = "Food",
+                    tags = "Transaction limit exceeded for this operation",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 120.0,
                     bankName = "Kotak",
-                    tags = "Other",
+                    tags = "Suspicious activity detected on your account",
                     messageTime = System.currentTimeMillis()
                 )
             )
@@ -426,6 +434,23 @@ class MainViewModel(
             loadSmsTransactions()
             updateFilteredSmsTransactions()
         }
+    }
+    
+
+    
+    /**
+     * Test SMS receiver functionality
+     */
+    fun testSmsReceiver(context: Context) {
+        Log.d("MainViewModel", "Testing SMS receiver...")
+        
+        // Create a test SMS intent
+        val testIntent = Intent(android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
+        testIntent.putExtra("pdus", arrayOf<Byte>())
+        
+        // Send broadcast to test receiver
+        context.sendBroadcast(testIntent)
+        Log.d("MainViewModel", "Test SMS broadcast sent")
     }
 
     private fun calculateShiftedRange(currentRange: Pair<Long, Long>, mode: DateRangeMode, forward: Boolean): Pair<Long, Long> {
@@ -449,4 +474,50 @@ class MainViewModel(
         val (start, end) = _dateRange.value
         loadTransactionsByDateRange(start, end)
     }
+    
+
+    
+    /**
+     * Handle new SMS message using same parsing logic
+     */
+    private fun handleNewSms(messageBody: String, timestamp: Long) {
+        viewModelScope.launch {
+            try {
+                Log.d("MainViewModel", "New SMS received: $messageBody")
+                
+                // Use same parsing logic as SmsUtils.kt
+                val parsedTransaction = MessageParser.parseNewMessage(messageBody, timestamp)
+                
+                if (parsedTransaction != null) {
+                    Log.d("MainViewModel", "Parsed transaction: ₹${parsedTransaction.amount} from ${parsedTransaction.bankName}")
+                    
+                    // Show popup for new transaction
+                    _newMessageDetected.value = parsedTransaction
+                    
+                    // Auto-dismiss popup after 5 seconds
+                    kotlinx.coroutines.delay(5000)
+                    _newMessageDetected.value = null
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error handling new SMS", e)
+            }
+        }
+    }
+    
+    /**
+     * Handle new SMS from MainActivity (called by ContentObserver)
+     */
+    fun handleNewSmsFromActivity(messageBody: String, timestamp: Long) {
+        Log.d("MainViewModel", "handleNewSmsFromActivity called with: $messageBody")
+        handleNewSms(messageBody, timestamp)
+    }
+    
+    /**
+     * Dismiss the new message popup
+     */
+    fun dismissNewMessagePopup() {
+        _newMessageDetected.value = null
+    }
+    
+
 } 

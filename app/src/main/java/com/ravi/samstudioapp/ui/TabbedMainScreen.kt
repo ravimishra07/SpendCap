@@ -63,7 +63,6 @@ fun TabbedMainScreen(
             onRefreshClick = onRefreshClick,
             onInsightsClick = onInsightsClick,
             isLoading = isLoading,
-            onAddDummyClick = {},
             smsTransactions = filteredSmsTransactions,
             bankTransactions = transactions,
             onEdit = { transaction ->

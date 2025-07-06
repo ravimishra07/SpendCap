@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
@@ -91,6 +92,7 @@ import com.ravi.samstudioapp.presentation.insights.InsightsActivity
 import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
 import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
+import com.ravi.samstudioapp.ui.components.NewMessagePopup
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -215,7 +217,6 @@ fun CustomToolbarWithDateRange(
     onRefreshClick: () -> Unit = {},
     onInsightsClick: () -> Unit = {},
     isLoading: Boolean = false,
-    onAddDummyClick: () -> Unit = {},
     currentRange: Pair<Long, Long>,
     mode: DateRangeMode,
     onModeChange: (DateRangeMode) -> Unit,
@@ -514,7 +515,6 @@ fun MainScreenPreview() {
             onDatePickerChange = { _, _ -> },
             onRefreshClick = {},
             isLoading = false,
-            onAddDummyClick = {},
             bankTransactions = emptyList()
         )
     }
@@ -860,6 +860,9 @@ fun LoadMainScreen(viewModel: MainViewModel) {
     val currentRange by viewModel.dateRange.collectAsState()
     val mode by viewModel.dateRangeMode.collectAsState()
     val prevRange by viewModel.prevRange.collectAsState()
+    
+    // Real-time message detection state
+    val newMessageDetected by viewModel.newMessageDetected.collectAsState()
 
     val prefs = context.getSharedPreferences(MainViewModel.CORE_NAME, Context.MODE_PRIVATE)
     viewModel.loadInitialPreferences(prefs)
@@ -945,8 +948,6 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                         context.startActivity(intent)
                     },
                     isLoading = isLoading,
-                    onAddDummyClick = {
-                    },
                     smsTransactions = filteredSmsTransactions,
                     bankTransactions = transactions,
                     onEdit = { editingTransaction = it; showDialog = true }
@@ -1130,6 +1131,16 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     }
                 )
             }
+            
+            // New message popup
+            newMessageDetected?.let { transaction ->
+                NewMessagePopup(
+                    transaction = transaction,
+                    onDismiss = { viewModel.dismissNewMessagePopup() }
+                )
+            }
+            
+
         }
     }
 }
