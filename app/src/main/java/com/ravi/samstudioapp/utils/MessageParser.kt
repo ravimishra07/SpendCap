@@ -43,7 +43,7 @@ object MessageParser {
                 
                 Log.d("MessageParser", "💰 Amount extracted: $amount")
                 
-                if (amount != null && amount < 500) {
+                if (amount != null) {
                     Log.d("MessageParser", "✅ Valid transaction: ₹$amount from $matchedBank")
                     
                     return BankTransaction(
@@ -53,7 +53,7 @@ object MessageParser {
                         tags = messageBody
                     )
                 } else {
-                    if (amount == null) {
+                    if (true) {
                         Log.d("MessageParser", "❌ Amount could not be parsed")
                     } else {
                         Log.d("MessageParser", "❌ Amount ₹$amount is >= 500 (threshold)")

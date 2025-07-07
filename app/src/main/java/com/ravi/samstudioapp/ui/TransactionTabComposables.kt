@@ -176,10 +176,10 @@ fun InsightsTabContent(
     mode: DateRangeMode
 ) {
     Spacer(modifier = Modifier.height(8.dp))
-    SpendBarGraph(
+    DetailedInsightsTab(
         transactions = roomTransactions,
         dateRange = currentRange,
         mode = mode,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp)
     )
 }

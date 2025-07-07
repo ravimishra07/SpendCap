@@ -84,8 +84,12 @@ import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
+import com.patrykandpatrick.vico.core.component.shape.LineComponent
+import com.patrykandpatrick.vico.core.component.shape.Shapes
+import com.patrykandpatrick.vico.core.dimensions.MutableDimensions
 import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.presentation.insights.InsightsActivity
 import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
@@ -155,7 +159,11 @@ val categoryDefs = listOf(
         "Cigarette",
         Icons.Filled.LocalCafe,
         ComposeColor(0xFF6D4C41)
-    ) { txn -> txn.tags.contains("cigarette", ignoreCase = true) },
+    ) { txn -> 
+        txn.tags.contains("cigarette", ignoreCase = true) || 
+        txn.tags.contains("ciggret", ignoreCase = true) ||
+        txn.category.equals("ciggret", ignoreCase = true)
+    },
     CategoryDef(
         "Travel",
         Icons.Filled.DirectionsCar,
@@ -683,7 +691,7 @@ fun SpendBarGraph(
     barColor: Color = MaterialTheme.colorScheme.primary,
     barWidth: Dp = 24.dp,
     barSpacing: Dp = 16.dp,
-    graphHeight: Dp = 180.dp
+    graphHeight: Dp = 250.dp
 ) {
     val zone = ZoneId.systemDefault()
     val startDate = Instant.ofEpochMilli(dateRange.first).atZone(zone).toLocalDate()
@@ -1020,37 +1028,13 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                         }
                     }
                     1 -> {
-                        // Insights Tab - Empty for now
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    Icons.Filled.Analytics,
-                                    contentDescription = "Insights",
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "Insights Coming Soon",
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Analytics and charts will be displayed here",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
-                        }
+                        // Insights Tab with detailed charts
+                        DetailedInsightsTab(
+                            transactions = filteredSmsTransactions,
+                            dateRange = currentRange,
+                            mode = mode,
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
                     }
                 }
             }
@@ -1393,6 +1377,281 @@ fun TransactionList(
                             Text("Cancel")
                         }
                     }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryBarChart(
+    transactions: List<BankTransaction>,
+    modifier: Modifier = Modifier
+) {
+    // Function to normalize category names
+    fun normalizeCategory(category: String): String {
+        return when {
+            category.equals("ciggret", ignoreCase = true) -> "Cigarette"
+            category.equals("cigarette", ignoreCase = true) -> "Cigarette"
+            category.equals("food", ignoreCase = true) -> "Food"
+            category.equals("travel", ignoreCase = true) -> "Travel"
+            else -> "Other"
+        }
+    }
+    
+    val categoryData = transactions
+        .groupBy { normalizeCategory(it.category) }
+        .mapValues { (_, txns) -> txns.sumOf { it.amount } }
+        .toList()
+        .sortedByDescending { it.second }
+
+    // Debug logging
+    LaunchedEffect(categoryData) {
+        println("CategoryBarChart - All categories found: ${categoryData.map { it.first }}")
+        println("CategoryBarChart - Original transactions: ${transactions.map { "${it.category}: ₹${it.amount}" }}")
+        println("CategoryBarChart - Normalized transactions: ${transactions.map { "${normalizeCategory(it.category)}: ₹${it.amount}" }}")
+    }
+
+    if (categoryData.isEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "No category data available",
+                color = Color.Gray
+            )
+        }
+        return
+    }
+
+    val chartEntries = categoryData.mapIndexed { index, (_, amount) ->
+        entryOf(index.toFloat(), amount.toFloat())
+    }
+    val chartEntryModel = entryModelOf(chartEntries)
+    val categoryLabels = categoryData.map { it.first }
+    val barColors = listOf(
+        Color(0xFFEF6C00), // Food
+        Color(0xFF6D4C41), // Cigarette
+        Color(0xFF388E3C), // Travel
+        Color(0xFF0288D1), // Other
+        Color(0xFF1976D2), // Extra
+        Color(0xFF8E24AA)  // Extra
+    )
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Spending by Category",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Chart(
+            chart = columnChart(),
+            model = chartEntryModel,
+            startAxis = startAxis(),
+            bottomAxis = bottomAxis(
+                valueFormatter = { value, _ ->
+                    categoryLabels.getOrNull(value.toInt()) ?: ""
+                },
+                guideline = null
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height((60 * categoryData.size).dp.coerceAtLeast(180.dp))
+        )
+        // Category legend
+        Column(
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            categoryData.forEachIndexed { idx, (category, amount) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(16.dp)
+                                .background(barColors[idx % barColors.size], shape = RoundedCornerShape(4.dp))
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = category,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = "₹${String.format("%.2f", amount)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailedInsightsTab(
+    transactions: List<BankTransaction>,
+    dateRange: Pair<Long, Long>,
+    mode: DateRangeMode,
+    modifier: Modifier = Modifier
+) {
+    // Debug logging for the entire insights tab
+    LaunchedEffect(transactions) {
+        println("=== DETAILED INSIGHTS TAB DEBUG ===")
+        println("Total transactions received: ${transactions.size}")
+        println("All transaction categories: ${transactions.map { it.category }}")
+        println("Unique categories: ${transactions.map { it.category }.distinct()}")
+        println("Date range: $dateRange")
+        println("Mode: $mode")
+        println("==================================")
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            SpendingSummary(
+                transactions = transactions,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        
+        item {
+            CategoryBarChart(
+                transactions = transactions,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        
+        item {
+            SpendBarGraph(
+                transactions = transactions,
+                dateRange = dateRange,
+                mode = mode,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+fun SpendingSummary(
+    transactions: List<BankTransaction>,
+    modifier: Modifier = Modifier
+) {
+    val totalSpent = transactions.sumOf { it.amount }
+    val avgSpent = if (transactions.isNotEmpty()) totalSpent / transactions.size else 0.0
+    val maxSpent = transactions.maxOfOrNull { it.amount } ?: 0.0
+    val categoryCount = transactions.map { it.category }.distinct().size
+
+    // Debug logging for spending summary
+    LaunchedEffect(transactions) {
+        println("=== SPENDING SUMMARY DEBUG ===")
+        println("Total spent: $totalSpent")
+        println("Average spent: $avgSpent")
+        println("Max spent: $maxSpent")
+        println("Category count: $categoryCount")
+        println("All categories: ${transactions.map { it.category }.distinct()}")
+        println("==============================")
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Spending Summary",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "₹${String.format("%.2f", totalSpent)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Total Spent",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "₹${String.format("%.2f", avgSpent)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = "Average",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "₹${String.format("%.2f", maxSpent)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                Text(
+                    text = "Highest",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = transactions.size.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Transactions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = categoryCount.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = "Categories",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
         }

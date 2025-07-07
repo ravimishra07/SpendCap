@@ -280,7 +280,10 @@ class MainViewModel(
                     messageTime = it.messageTime,
                     amount = it.amount,
                     bankName = it.bankName,
-                    tags = it.tags
+                    tags = it.tags,
+                    count = it.count,
+                    category = it.category,
+                    verified = it.verified
                 )
             }
             updateFilteredSmsTransactions()
@@ -302,7 +305,10 @@ class MainViewModel(
                     messageTime = it.messageTime,
                     amount = it.amount,
                     bankName = it.bankName,
-                    tags = it.tags
+                    tags = it.tags,
+                    count = it.count,
+                    category = it.category,
+                    verified = it.verified
                 )
             }
 
