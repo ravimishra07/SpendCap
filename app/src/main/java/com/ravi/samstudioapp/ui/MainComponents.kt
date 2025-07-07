@@ -30,6 +30,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
@@ -1096,14 +1097,21 @@ fun TransactionList(
 
     // Filter chips row
     var selectedCategory by remember { mutableStateOf<CategoryDef?>(null) }
+    val allCategory = CategoryDef(
+        name = "All",
+        icon = Icons.Filled.List,
+        color = ComposeColor(0xFF0288D1)
+    ) { true }
+    val filterCategories = listOf(allCategory) + categoryDefs
     
     // Memoize expensive operations
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
     
     val filteredTxns = remember(smsTransactions, selectedCategory) {
-        selectedCategory?.let { cat -> smsTransactions.filter { cat.matcher(it) } }
-            ?: smsTransactions
+        selectedCategory?.let { cat ->
+            if (cat.name == "All") smsTransactions else smsTransactions.filter { it.category.equals(cat.name, ignoreCase = true) }
+        } ?: smsTransactions
     }
     
     val grouped = remember(filteredTxns, dateFormat) {
@@ -1119,19 +1127,21 @@ fun TransactionList(
                 .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.Center
         ) {
-            categoryDefs.forEach { category ->
-                val isSelected = selectedCategory == category
+            filterCategories.forEach { category ->
+                val isSelected = selectedCategory?.name == category.name || (selectedCategory == null && category.name == "All")
                 NeumorphicBorderBox(
                     modifier = Modifier.padding(horizontal = 4.dp),
                     cornerRadius = 4.dp,
-                    backgroundColor = if (isSelected) DarkGray else Black,
-                    borderColor = if (isSelected) LightGray else Color.White.copy(alpha = 0.10f),
+                    backgroundColor = if (isSelected) ComposeColor(0xFF0288D1) else Black,
+                    borderColor = if (isSelected) ComposeColor(0xFF0288D1) else Color.White.copy(alpha = 0.10f),
                     shadowElevation = if (isSelected) 4.dp else 2.dp,
                     contentPadding = 8.dp
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { selectedCategory = if (isSelected) null else category }
+                        modifier = Modifier.clickable {
+                            selectedCategory = if (category.name == "All") null else category
+                        }
                     ) {
                         Icon(category.icon, contentDescription = category.name, tint = LightGray)
                         Spacer(Modifier.width(6.dp))
