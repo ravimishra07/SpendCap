@@ -1172,108 +1172,102 @@ fun TransactionList(
                         NeumorphicBorderBox(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 2.dp, horizontal = 8.dp),
-                            cornerRadius = 8.dp,
+                                .padding(vertical = 4.dp, horizontal = 8.dp),
+                            cornerRadius = 12.dp,
                             backgroundColor = DarkGray,
                             borderColor = Color.White.copy(alpha = 0.10f),
-                            shadowElevation = 2.dp,
-                            contentPadding = 12.dp
+                            shadowElevation = 3.dp,
+                            contentPadding = 16.dp
                         ) {
-                            Column(modifier = Modifier.fillMaxSize()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
                                 val dateTime = remember(txn.messageTime, dateTimeFormat) {
                                     dateTimeFormat.format(Date(txn.messageTime))
                                 }
-                                
-                                Text("Amount: ₹${txn.amount}", color = LightGray)
-                                Text("Bank: ${txn.bankName}", color = LightGray)
-                                
-                                // Show category as a chip
                                 val catName = bankTxn?.category ?: "Other"
                                 val catDef = remember(catName) {
                                     categoryDefs.find { it.name.equals(catName, ignoreCase = true) }
                                         ?: categoryDefs.last()
                                 }
-                                
-                                Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
-                                    AssistChip(
-                                        onClick = {},
-                                        label = { 
-                                            Text(
-                                                catDef.name, 
-                                                color = LightGray,
-                                                fontSize = 11.sp
-                                            ) 
-                                        },
-                                        leadingIcon = {
-                                            Icon(
-                                                catDef.icon,
-                                                contentDescription = catDef.name,
-                                                tint = LightGray,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                        },
-                                        colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = Black,
-                                            labelColor = LightGray
-                                        ),
-                                        border = BorderStroke(1.dp, LightGray)
-                                    )
-                                    if (bankTxn?.verified == true) {
-                                        Spacer(Modifier.width(8.dp))
-                                        AssistChip(
-                                            onClick = {},
-                                            label = {
-                                                Text(
-                                                    "Verified",
-                                                    color = LightGray,
-                                                    fontSize = 11.sp
-                                                )
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    Icons.Filled.Check,
-                                                    contentDescription = "Verified",
-                                                    tint = LightGray,
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                            },
-                                            colors = AssistChipDefaults.assistChipColors(
-                                                containerColor = Black,
-                                                labelColor = LightGray
-                                            ),
-                                            border = BorderStroke(1.dp, LightGray)
+                                // Category icon and name (left)
+                                Icon(
+                                    catDef.icon,
+                                    contentDescription = catDef.name,
+                                    tint = LightGray,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                // Main info (center, expanded)
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = catDef.name,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = LightGray
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "₹${txn.amount}",
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = LightGray
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = txn.bankName,
+                                            fontSize = 11.sp,
+                                            color = LightGray.copy(alpha = 0.6f)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = dateTime,
+                                            fontSize = 10.sp,
+                                            color = LightGray.copy(alpha = 0.5f)
                                         )
                                     }
                                 }
-                                
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                // Actions (right)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
                                 ) {
-                                    Text(
-                                        text = dateTime,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = LightGray,
-                                        modifier = Modifier
-                                            .background(Black, shape = MaterialTheme.shapes.small)
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                    
-                                    // Edit button - only show if there's a matching bank transaction
                                     bankTxn?.let { transaction ->
                                         IconButton(
                                             onClick = { editingTxn = transaction },
-                                            modifier = Modifier.size(32.dp)
+                                            modifier = Modifier.size(28.dp)
                                         ) {
                                             Icon(
                                                 Icons.Filled.Edit,
                                                 contentDescription = "Edit Transaction",
-                                                tint = LightGray,
-                                                modifier = Modifier.size(20.dp)
+                                                tint = LightGray.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                    if (bankTxn?.verified == true) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                contentDescription = "Verified",
+                                                tint = LightGray.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text(
+                                                text = "✓",
+                                                fontSize = 10.sp,
+                                                color = LightGray.copy(alpha = 0.8f)
                                             )
                                         }
                                     }
