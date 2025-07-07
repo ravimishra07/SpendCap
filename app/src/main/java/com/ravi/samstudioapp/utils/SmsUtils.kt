@@ -1,42 +1,54 @@
 package com.ravi.samstudioapp.utils
 
 import android.content.Context
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
+import android.provider.Telephony
+import com.ravi.samstudioapp.domain.model.BankTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import android.util.Log
 
-suspend fun readAndParseSms(context: Context): List<ParsedSmsTransaction> = withContext(Dispatchers.IO) {
-    val result = mutableListOf<ParsedSmsTransaction>()
+suspend fun readAndParseSms(context: Context): List<BankTransaction> = withContext(Dispatchers.IO) {
+    val result = mutableListOf<BankTransaction>()
     try {
         val cursor = context.contentResolver.query(
-            android.provider.Telephony.Sms.Inbox.CONTENT_URI,
-            arrayOf(android.provider.Telephony.Sms.BODY,
-                android.provider.Telephony.Sms.DATE),
+            Telephony.Sms.Inbox.CONTENT_URI,
+            arrayOf(Telephony.Sms.BODY, Telephony.Sms.DATE),
             null, null, null
         )
+
+        val bankKeywords = mapOf(
+            "federal" to "Federal Bank",
+            "idfc first" to "IDFC First Bank",
+            "idfc" to "IDFC First Bank",
+            "hdfc" to "HDFC Bank",
+            "sbi" to "SBI",
+            "axis" to "Axis Bank",
+            "icici" to "ICICI Bank",
+            "kotak" to "Kotak Bank"
+        )
+
+        val amountRegex = Regex("(INR|Rs\\.?|rs\\.?|₹)\\s?([\\d,]+\\.?\\d*)")
+
         cursor?.use {
-            val amountRegex = Regex("([\\d,]+\\.?\\d*)")
             while (it.moveToNext()) {
                 val body = it.getString(0)
                 val dateMillis = it.getLong(1)
-
                 val lowerBody = body.lowercase()
-                val matchedBank = when {
-                    "federal" in lowerBody -> "Federal Bank"
-                    "idfc" in lowerBody -> "IDFC"
-                    else -> null
-                }
+
+                val matchedBank = bankKeywords.entries.firstOrNull { (key, _) -> key in lowerBody }?.value
 
                 if (matchedBank != null) {
                     val match = amountRegex.find(body)
-                    val amount = match?.groupValues?.get(1)?.replace(",", "")?.toDoubleOrNull()
+                    val amountStr = match?.groups?.get(2)?.value?.replace(",", "")
+                    val amount = amountStr?.toDoubleOrNull()
+
                     if (amount != null && amount < 500) {
                         result.add(
-                            ParsedSmsTransaction(
+                            BankTransaction(
+                                messageTime = dateMillis,
                                 amount = amount,
                                 bankName = matchedBank,
-                                messageTime = dateMillis,
-                                rawMessage = body
+                                tags = body
                             )
                         )
                     }
@@ -44,7 +56,7 @@ suspend fun readAndParseSms(context: Context): List<ParsedSmsTransaction> = with
             }
         }
     } catch (e: Exception) {
-        android.util.Log.e("SamStudio", "Error reading SMS: ", e)
+        Log.e("SamStudio", "Error reading SMS: ", e)
     }
     result
 }

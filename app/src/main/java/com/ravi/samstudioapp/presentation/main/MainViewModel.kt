@@ -1,16 +1,19 @@
 package com.ravi.samstudioapp.presentation.main
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import com.ravi.samstudioapp.domain.usecase.GetAllBankTransactionsUseCase
 import com.ravi.samstudioapp.domain.usecase.GetBankTransactionsByDateRangeUseCase
 import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
+import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
+import com.ravi.samstudioapp.domain.usecase.GetExistingMessageTimesUseCase
 import com.ravi.samstudioapp.utils.readAndParseSms
+import com.ravi.samstudioapp.utils.MessageParser
 import com.ravi.samstudioapp.ui.DateRangeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +22,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.runtime.LaunchedEffect
 import java.util.Calendar
+import android.util.Log
+import android.os.Build
 
 class MainViewModel(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
     private val getByDateRange: GetBankTransactionsByDateRangeUseCase,
     private val insertTransaction: InsertBankTransactionUseCase,
-    private val updateTransaction: UpdateBankTransactionUseCase
+    private val updateTransactionUseCase: UpdateBankTransactionUseCase,
+    private val findExactTransaction: FindExactBankTransactionUseCase,
+    private val getExistingMessageTimes: GetExistingMessageTimesUseCase
 ) : ViewModel() {
     private val _transactions = MutableStateFlow<List<BankTransaction>>(emptyList())
     val transactions: StateFlow<List<BankTransaction>> = _transactions
@@ -37,17 +44,23 @@ class MainViewModel(
     val dateRange: StateFlow<Pair<Long, Long>> = _dateRange
 
     // New state flows for LoadMainScreen functionality
-    private val _smsTransactions = MutableStateFlow<List<ParsedSmsTransaction>>(emptyList())
-    val smsTransactions: StateFlow<List<ParsedSmsTransaction>> = _smsTransactions
+    private val _smsTransactions = MutableStateFlow<List<BankTransaction>>(emptyList())
+    val smsTransactions: StateFlow<List<BankTransaction>> = _smsTransactions
 
-    private val _filteredSmsTransactions = MutableStateFlow<List<ParsedSmsTransaction>>(emptyList())
-    val filteredSmsTransactions: StateFlow<List<ParsedSmsTransaction>> = _filteredSmsTransactions
+    private val _filteredSmsTransactions = MutableStateFlow<List<BankTransaction>>(emptyList())
+    val filteredSmsTransactions: StateFlow<List<BankTransaction>> = _filteredSmsTransactions
 
     private val _dateRangeMode = MutableStateFlow(DateRangeMode.DAILY)
     val dateRangeMode: StateFlow<DateRangeMode> = _dateRangeMode
 
     private val _prevRange = MutableStateFlow<Pair<Long, Long>?>(null)
     val prevRange: StateFlow<Pair<Long, Long>?> = _prevRange
+
+    // Real-time message detection state
+    private val _newMessageDetected = MutableStateFlow<BankTransaction?>(null)
+    val newMessageDetected: StateFlow<BankTransaction?> = _newMessageDetected
+    
+
 
     // Constants for SharedPreferences
     companion object {
@@ -105,42 +118,156 @@ class MainViewModel(
 
     fun addTransaction(transaction: BankTransaction) {
         viewModelScope.launch {
-            insertTransaction(transaction)
-            loadAllTransactions()
+            try {
+                insertTransaction(transaction)
+                // Only reload if we're not already in a loading state
+                if (!_isLoading.value) {
+                    loadAllTransactions()
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error adding transaction", e)
+            }
         }
     }
 
     fun updateTransaction(transaction: BankTransaction) {
-        viewModelScope.launch {
-            updateTransaction(transaction)
-            loadAllTransactions()
+        viewModelScope.launch(Dispatchers.Default) {
+            try {
+                updateTransactionUseCase(transaction)
+                loadAllTransactions()
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error updating transaction", e)
+            }
         }
     }
 
-    fun syncFromSms(context: Context) {
+    // Add a new method to handle both add and update in a single operation
+    fun saveTransaction(transaction: BankTransaction) {
         viewModelScope.launch {
-            _isLoading.value = true
             try {
-                val smsTxns = readAndParseSms(context)
-                smsTxns.forEach { sms ->
-                    val txn = BankTransaction(
-                        amount = sms.amount,
-                        bankName = sms.bankName,
-                        messageTime = sms.messageTime,
-                        tags = sms.rawMessage,
-                        count = null
-                    )
-                    insertTransaction(txn)
-                }
+                _isLoading.value = true
+                // Since messageTime is now the primary key, we can directly insert/update
+                // Room will handle conflicts based on the primary key
+                insertTransaction(transaction)
                 loadAllTransactions()
-                loadSmsTransactions()
-                updateFilteredSmsTransactions()
             } catch (e: Exception) {
-                // Handle error
+                Log.e("MainViewModel", "Error saving transaction", e)
             } finally {
                 _isLoading.value = false
             }
         }
+    }
+
+    /**
+     * Finds exact BankTransaction entry from database and overwrites it
+     * Uses proper coroutines and threading for database operations
+     * @param transaction The BankTransaction to find and overwrite
+     */
+    fun findAndOverwriteTransaction(transaction: BankTransaction) {
+        viewModelScope.launch {
+            try {
+                _isLoading.value = true
+                
+                // Use IO dispatcher for database operations
+                val existingTransaction = withContext(Dispatchers.IO) {
+                    findExactTransaction(transaction.messageTime)
+                }
+                
+                if (existingTransaction != null) {
+
+                    // Update the transaction in database using IO dispatcher
+                    withContext(Dispatchers.IO) {
+                        updateTransactionUseCase(transaction)
+                    }
+                    
+                } else {
+                    // If no transaction found with this messageTime, insert as new transaction
+                    withContext(Dispatchers.IO) {
+                        insertTransaction(transaction)
+                    }
+                }
+                
+                // Reload transactions to reflect changes
+                loadAllTransactions()
+                loadSmsTransactions()
+                updateFilteredSmsTransactions()
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Data reload completed")
+                
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "findAndOverwriteTransaction: Error finding/overwriting transaction", e)
+                Log.e("MainViewModel", "findAndOverwriteTransaction: Error message: ${e.message}")
+                Log.e("MainViewModel", "findAndOverwriteTransaction: Error stack trace: ${e.stackTraceToString()}")
+            } finally {
+                _isLoading.value = false
+                Log.d("MainViewModel", "findAndOverwriteTransaction: Operation completed")
+            }
+        }
+    }
+
+    /**
+     * Example usage function that demonstrates how to use findAndOverwriteTransaction
+     * This function takes a BankTransaction and finds the exact entry to overwrite
+     */
+    fun processBankTransaction(transaction: BankTransaction) {
+        Log.d("MainViewModel", "processBankTransaction: Processing transaction - Amount: ${transaction.amount}, Bank: ${transaction.bankName}")
+        
+        // Use the findAndOverwriteTransaction function with proper coroutines and threading
+        findAndOverwriteTransaction(transaction)
+    }
+
+    fun syncFromSms(context: Context, onComplete: ((Int) -> Unit)? = null) {
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val smsTxns = withContext(Dispatchers.IO) {
+                    readAndParseSms(context)
+                }
+
+                val newTxns = smsTxns.map { sms ->
+                    BankTransaction(
+                        amount = sms.amount,
+                        bankName = sms.bankName,
+                        messageTime = sms.messageTime,
+                        tags = sms.tags,
+                        count = null
+                    )
+                }
+                
+                // Efficiently check for existing messageTimes in bulk
+                val messageTimesToCheck = newTxns.map { it.messageTime }
+                val existingMessageTimes = withContext(Dispatchers.IO) {
+                    getExistingMessageTimes(messageTimesToCheck) 
+                }
+
+                // Filter out transactions that already exist
+                val uniqueTxns = newTxns.filter { txn ->
+                    !existingMessageTimes.contains(txn.messageTime)
+                }
+
+                // Batch insert if possible, else insert one by one
+                uniqueTxns.forEach { txn ->
+                    withContext(Dispatchers.IO) { insertTransaction(txn) }
+                }
+
+                loadAllTransactions()
+                loadSmsTransactions()
+                updateFilteredSmsTransactions()
+
+                // Call completion callback with number of new transactions
+                onComplete?.invoke(uniqueTxns.size)
+            } catch (e: Exception) {
+                Log.e("SamStudio", "syncFromSms: Error syncing SMS", e)
+                Log.e("SamStudio", "syncFromSms: Error message: ${e.message}")
+                Log.e("SamStudio", "syncFromSms: Error stack trace: ${e.stackTraceToString()}")
+                // Call completion callback with error (-1 indicates error)
+                onComplete?.invoke(-1)
+            } finally {
+                Log.d("SamStudio", "syncFromSms: Setting loading to false")
+                _isLoading.value = false
+            }
+        }
+        Log.d("SamStudio", "syncFromSms: Function call completed")
     }
 
     // New methods for LoadMainScreen functionality
@@ -149,13 +276,42 @@ class MainViewModel(
         viewModelScope.launch {
             val allTransactions = getAllTransactions()
             _smsTransactions.value = allTransactions.map {
-                ParsedSmsTransaction(
+                BankTransaction(
+                    messageTime = it.messageTime,
                     amount = it.amount,
                     bankName = it.bankName,
-                    messageTime = it.messageTime,
-                    rawMessage = it.tags
+                    tags = it.tags,
+                    count = it.count,
+                    category = it.category,
+                    verified = it.verified
                 )
             }
+            updateFilteredSmsTransactions()
+        }
+    }
+
+    fun loadSmsTransactions(maxDays: Int = 30) {
+        viewModelScope.launch {
+            val now = System.currentTimeMillis()
+            val cutoff = now - (maxDays * 24 * 60 * 60 * 1000L)
+
+            val allTransactions = getAllTransactions()
+                .sortedByDescending { it.messageTime } // Newest first
+
+            val recentTransactions = allTransactions.takeWhile { it.messageTime >= cutoff }
+
+            _smsTransactions.value = recentTransactions.map {
+                BankTransaction(
+                    messageTime = it.messageTime,
+                    amount = it.amount,
+                    bankName = it.bankName,
+                    tags = it.tags,
+                    count = it.count,
+                    category = it.category,
+                    verified = it.verified
+                )
+            }
+
             updateFilteredSmsTransactions()
         }
     }
@@ -231,31 +387,31 @@ class MainViewModel(
                 BankTransaction(
                     amount = 100.0,
                     bankName = "HDFC",
-                    tags = "Food",
+                    tags = "Transaction successful! Your account has been credited with Rs.100",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 200.0,
                     bankName = "ICICI",
-                    tags = "Travel",
+                    tags = "Low balance alert! Your account balance is insufficient for this transaction",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 50.0,
                     bankName = "SBI",
-                    tags = "Cigarette",
+                    tags = "OTP verification required for transaction of Rs.50",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 80.0,
                     bankName = "Axis",
-                    tags = "Food",
+                    tags = "Transaction limit exceeded for this operation",
                     messageTime = System.currentTimeMillis()
                 ),
                 BankTransaction(
                     amount = 120.0,
                     bankName = "Kotak",
-                    tags = "Other",
+                    tags = "Suspicious activity detected on your account",
                     messageTime = System.currentTimeMillis()
                 )
             )
@@ -265,6 +421,25 @@ class MainViewModel(
             updateFilteredSmsTransactions()
         }
     }
+    
+
+    
+    /**
+     * Test SMS receiver functionality
+     */
+    /*
+    fun testSmsReceiver(context: Context) {
+        Log.d("MainViewModel", "Testing SMS receiver...")
+        
+        // Create a test SMS intent
+        val testIntent = Intent(android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
+        testIntent.putExtra("pdus", arrayOf<Byte>())
+        
+        // Send broadcast to test receiver
+        context.sendBroadcast(testIntent)
+        Log.d("MainViewModel", "Test SMS broadcast sent")
+    }
+    */
 
     private fun calculateShiftedRange(currentRange: Pair<Long, Long>, mode: DateRangeMode, forward: Boolean): Pair<Long, Long> {
         val (start, end) = currentRange
@@ -286,5 +461,60 @@ class MainViewModel(
     init {
         val (start, end) = _dateRange.value
         loadTransactionsByDateRange(start, end)
+    }
+    
+
+    
+    /**
+     * Handle new SMS message using same parsing logic
+     */
+    private fun handleNewSms(messageBody: String, timestamp: Long) {
+        viewModelScope.launch {
+            try {
+                Log.d("MainViewModel", "🔄 handleNewSms called with: ${messageBody.take(50)}...")
+                // Use same parsing logic as SmsUtils.kt
+                val parsedTransaction = MessageParser.parseNewMessage(messageBody, timestamp)
+                if (parsedTransaction != null) {
+                    Log.d("MainViewModel", "✅ Parsed transaction: ₹${parsedTransaction.amount} from ${parsedTransaction.bankName}")
+                    // Show popup for new transaction
+                    _newMessageDetected.value = parsedTransaction
+                    Log.d("MainViewModel", "🎉 Popup should now be visible!")
+                } else {
+                    Log.d("MainViewModel", "❌ Could not parse transaction from SMS")
+                }
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error handling new SMS", e)
+            }
+        }
+    }
+    
+    /**
+     * Handle new SMS from MainActivity (called by ContentObserver)
+     */
+    fun handleNewSmsFromActivity(messageBody: String, timestamp: Long) {
+        Log.d("MainViewModel", "handleNewSmsFromActivity called with: $messageBody")
+        handleNewSms(messageBody, timestamp)
+    }
+    
+    /**
+     * Dismiss the new message popup
+     */
+    fun dismissNewMessagePopup() {
+        _newMessageDetected.value = null
+    }
+    
+    /**
+     * Test method to manually trigger popup
+     */
+    fun testPopup() {
+        Log.d("MainViewModel", "🧪 Testing popup with dummy transaction")
+        val testTransaction = BankTransaction(
+            messageTime = System.currentTimeMillis(),
+            amount = 100.0,
+            bankName = "HDFC",
+            tags = "Test transaction for ₹100 from HDFC"
+        )
+        _newMessageDetected.value = testTransaction
+        Log.d("MainViewModel", "🧪 Test popup triggered!")
     }
 } 

@@ -60,7 +60,15 @@ fun MainScreen(
                     IconButton(onClick = { showDatePicker = true }) {
                         Icon(Icons.Default.DateRange, contentDescription = "Pick Date Range")
                     }
-                    IconButton(onClick = { viewModel.syncFromSms(context) }) {
+                    IconButton(onClick = { 
+                        viewModel.syncFromSms(context) { newTransactionCount ->
+                            when (newTransactionCount) {
+                                -1 -> android.widget.Toast.makeText(context, "Sync failed", android.widget.Toast.LENGTH_SHORT).show()
+                                0 -> android.widget.Toast.makeText(context, "No new transactions found", android.widget.Toast.LENGTH_SHORT).show()
+                                else -> android.widget.Toast.makeText(context, "Sync completed: $newTransactionCount new transactions", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Sync SMS")
                     }
                 }
@@ -75,13 +83,13 @@ fun MainScreen(
         Column(modifier = Modifier.padding(padding)) {
             // Dummy data for SpendBarGraph test
             val dummyTransactions = listOf(
-                BankTransaction(1, 100.0, "HDFC", "Food", System.currentTimeMillis() - 6 * 24 * 60 * 60 * 1000, null, "Food", false),
-                BankTransaction(2, 200.0, "ICICI", "Travel", System.currentTimeMillis() - 5 * 24 * 60 * 60 * 1000, null, "Travel", false),
-                BankTransaction(3, 50.0, "SBI", "Cigarette", System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000, null, "Cigarette", false),
-                BankTransaction(4, 80.0, "Axis", "Food", System.currentTimeMillis() - 3 * 24 * 60 * 60 * 1000, null, "Food", false),
-                BankTransaction(5, 120.0, "Kotak", "Other", System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000, null, "Other", false),
-                BankTransaction(6, 60.0, "HDFC", "Food", System.currentTimeMillis() - 1 * 24 * 60 * 60 * 1000, null, "Food", false),
-                BankTransaction(7, 90.0, "ICICI", "Travel", System.currentTimeMillis(), null, "Travel", false)
+                BankTransaction(System.currentTimeMillis() - 6 * 24 * 60 * 60 * 1000, 100.0, "HDFC", "Food", null, "Food", false),
+                BankTransaction(System.currentTimeMillis() - 5 * 24 * 60 * 60 * 1000, 200.0, "ICICI", "Travel", null, "Travel", false),
+                BankTransaction(System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000, 50.0, "SBI", "Cigarette", null, "Cigarette", false),
+                BankTransaction(System.currentTimeMillis() - 3 * 24 * 60 * 60 * 1000, 80.0, "Axis", "Food", null, "Food", false),
+                BankTransaction(System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000, 120.0, "Kotak", "Other", null, "Other", false),
+                BankTransaction(System.currentTimeMillis() - 1 * 24 * 60 * 60 * 1000, 60.0, "HDFC", "Food", null, "Food", false),
+                BankTransaction(System.currentTimeMillis(), 90.0, "ICICI", "Travel", null, "Travel", false)
             )
             SpendBarGraph(
                 transactions = dummyTransactions,

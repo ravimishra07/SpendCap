@@ -2,12 +2,14 @@ package com.ravi.samstudioapp.ui
 
 import android.Manifest
 import android.content.Context
-import android.content.Context.MODE_PRIVATE
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,88 +20,102 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.Analytics
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Message
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fastfood
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
-import com.ravi.samstudioapp.domain.model.BankTransaction
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.ui.graphics.Color as ComposeColor
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.graphics.vector.ImageVector
-import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
 import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
 import com.patrykandpatrick.vico.compose.chart.Chart
 import com.patrykandpatrick.vico.compose.chart.column.columnChart
+import com.patrykandpatrick.vico.compose.chart.line.lineChart
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
+import com.patrykandpatrick.vico.core.component.shape.LineComponent
+import com.patrykandpatrick.vico.core.component.shape.Shapes
+import com.patrykandpatrick.vico.core.dimensions.MutableDimensions
+import com.ravi.samstudioapp.domain.model.BankTransaction
+import com.ravi.samstudioapp.presentation.insights.InsightsActivity
 import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
 import com.ravi.samstudioapp.presentation.main.MainViewModel
-import com.ravi.samstudioapp.utils.Constants
-import android.content.Intent
-import com.ravi.samstudioapp.presentation.insights.InsightsActivity
+import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
+import com.ravi.samstudioapp.ui.components.NewMessagePopup
+import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.RepeatMode
+import com.ravi.samstudioapp.utils.PermissionManager
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
 
 
 // Add DateRangeMode enum at the top level
@@ -107,9 +123,9 @@ enum class DateRangeMode(val days: Int) {
     DAILY(1), WEEKLY(7), MONTHLY(30)
 }
 
-val darkShadow = ComposeColor.Black.copy(alpha = 0.40f)
-val lightShadow = ComposeColor.White.copy(alpha = 0.10f)
-val backgroundColor = ComposeColor.Black.copy(alpha = 0.9f)
+private val Black = ComposeColor(0xFF121212)
+private val DarkGray = ComposeColor(0xFF080809)
+private val LightGray = ComposeColor(0xFFE0E0E0)
 
 // Define a single source of truth for categories
 val categories = listOf(
@@ -126,7 +142,7 @@ data class CategoryDef(
     val name: String,
     val icon: ImageVector,
     val color: ComposeColor,
-    val matcher: (ParsedSmsTransaction) -> Boolean
+    val matcher: (BankTransaction) -> Boolean
 )
 
 val categoryDefs = listOf(
@@ -135,7 +151,7 @@ val categoryDefs = listOf(
         Icons.Filled.Fastfood,
         ComposeColor(0xFFEF6C00)
     ) { txn ->
-        txn.rawMessage.contains("food", ignoreCase = true) || txn.bankName.contains(
+        txn.tags.contains("food", ignoreCase = true) || txn.bankName.contains(
             "food",
             ignoreCase = true
         )
@@ -144,18 +160,58 @@ val categoryDefs = listOf(
         "Cigarette",
         Icons.Filled.LocalCafe,
         ComposeColor(0xFF6D4C41)
-    ) { txn -> txn.rawMessage.contains("cigarette", ignoreCase = true) },
+    ) { txn -> 
+        txn.tags.contains("cigarette", ignoreCase = true) || 
+        txn.tags.contains("ciggret", ignoreCase = true) ||
+        txn.category.equals("ciggret", ignoreCase = true)
+    },
     CategoryDef(
         "Travel",
         Icons.Filled.DirectionsCar,
         ComposeColor(0xFF388E3C)
-    ) { txn -> txn.rawMessage.contains("travel", ignoreCase = true) },
+    ) { txn -> txn.tags.contains("travel", ignoreCase = true) },
     CategoryDef(
         "Other",
         Icons.Filled.LocalDrink,
         ComposeColor(0xFF0288D1)
     ) { txn -> true } // fallback
 )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NeumorphicBorderBox(
+    modifier: Modifier = Modifier,
+    cornerRadius: Dp = 16.dp,
+    backgroundColor: Color = Black,
+    borderColor: Color = Color.White.copy(alpha = 0.10f),
+    borderWidth: Dp = 1.dp,
+    shadowColor: Color = Color.Black.copy(alpha = 0.25f),
+    shadowElevation: Dp = 8.dp,
+    contentPadding: Dp = 12.dp,
+    content: @Composable () -> Unit
+) {
+    Box(
+        modifier = modifier
+            .shadow(
+                elevation = shadowElevation,
+                shape = RoundedCornerShape(cornerRadius),
+                ambientColor = shadowColor,
+                spotColor = shadowColor
+            )
+            .background(
+                color = backgroundColor,
+                shape = RoundedCornerShape(cornerRadius)
+            )
+            .border(
+                width = borderWidth,
+                color = borderColor,
+                shape = RoundedCornerShape(cornerRadius)
+            )
+            .padding(contentPadding)
+    ) {
+        content()
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -169,404 +225,270 @@ fun CustomToolbarWithDateRange(
     onRefreshClick: () -> Unit = {},
     onInsightsClick: () -> Unit = {},
     isLoading: Boolean = false,
-    onAddDummyClick: () -> Unit = {},
     currentRange: Pair<Long, Long>,
     mode: DateRangeMode,
     onModeChange: (DateRangeMode) -> Unit,
     onDatePickerChange: (Long, Long) -> Unit,
-    smsTransactions: List<ParsedSmsTransaction> = emptyList(),
+    smsTransactions: List<BankTransaction> = emptyList(),
     bankTransactions: List<BankTransaction> = emptyList(),
     onEdit: (BankTransaction) -> Unit = {}
 ) {
     var showDateRangePicker by remember { mutableStateOf(false) }
     val dateRangePickerState = rememberDateRangePickerState()
     val context = LocalContext.current
-    val formattedRange = currentRange.let { (start, end) ->
-        run {
-            val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-            "${formatter.format(Date(start))} - ${formatter.format(Date(end))}"
-        }
+    
+    // Memoize formatted range to prevent recalculation
+    val formattedRange = remember(currentRange) {
+        val (start, end) = currentRange
+        val formatter = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        "${formatter.format(Date(start))} - ${formatter.format(Date(end))}"
     }
-    var editingTxn by remember { mutableStateOf<BankTransaction?>(null) }
-    var editAmount by remember { mutableStateOf("") }
-    var editType by remember { mutableStateOf("") }
-    var editBankName by remember { mutableStateOf("") }
-    var editCategory by remember { mutableStateOf("Other") }
-    var expanded by remember { mutableStateOf(false) }
 
-    // Keep edit fields in sync with editingTxn
-    LaunchedEffect(editingTxn) {
-        editingTxn?.let {
-            editAmount = it.amount.toString()
-            editType = it.tags
-            editBankName = it.bankName
-            editCategory = it.category.ifBlank { "Other" }
-        }
-    }
-    Column(modifier = modifier) {
+    // Memoize animation state to prevent recreation
+    val rotationAnimation by rememberInfiniteTransition().animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        )
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
         // Toolbar Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        NeumorphicBorderBox(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = 8.dp,
+            backgroundColor = DarkGray,
+            borderColor = Color.White.copy(alpha = 0.10f),
+            shadowElevation = 2.dp,
+            contentPadding = 12.dp
         ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleLarge,
-                color = ComposeColor.White
-            )
-            Row {
-                IconButton(onClick = onInsightsClick) {
-                    Icon(
-                        Icons.Filled.Analytics, 
-                        contentDescription = "Insights",
-                        tint = ComposeColor.White
-                    )
-                }
-                IconButton(onClick = onRefreshClick, enabled = !isLoading) {
-                    Icon(Icons.Filled.Refresh,  tint = ComposeColor.White,contentDescription = "Refresh")
-                }
-                // Number toggle with circular background
-                IconButton(onClick = {
-                    val newMode = when (mode) {
-                        DateRangeMode.DAILY -> DateRangeMode.WEEKLY
-                        DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
-                        DateRangeMode.MONTHLY -> DateRangeMode.DAILY
-                    }
-                    onModeChange(newMode)
-                    val cal = Calendar.getInstance()
-                    val end = cal.timeInMillis
-                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-                    val start = cal.timeInMillis
-                    onDatePickerChange(start, end)
-                    Toast.makeText(
-                        context,
-                        "Range changed to ${newMode.days} days",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(32.dp)
-                    ) {
-                        Text(
-                            text = mode.days.toString(),
-                            color = ComposeColor.White,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                }
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        // Date Range Row
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            IconButton(onClick = onPrevClick) {
-                Icon(
-                    Icons.Filled.ArrowBack,
-                    contentDescription = "Previous",
-                    tint = ComposeColor.White
-                )
-            }
-            Box(
-                modifier = Modifier.padding(horizontal = 8.dp)
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = formattedRange,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = ComposeColor.White,
-                    modifier = Modifier.clickable { showDateRangePicker = true }
-                )
-            }
-            IconButton(onClick = onNextClick) {
-                Icon(
-                    Icons.Filled.ArrowForward,
-                    contentDescription = "Next",
-                    tint = ComposeColor.White
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
+                // Top Row - Title and Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Title
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = LightGray
+                    )
 
-        // Filter chips row
-        var selectedCategory by remember { mutableStateOf<CategoryDef?>(null) }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState())
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            categoryDefs.forEach { category ->
-                AssistChip(
-                    onClick = {
-                        selectedCategory = if (selectedCategory == category) null else category
-                    },
-                    label = { Text(category.name, color = ComposeColor.White) },
-                    leadingIcon = { Icon(category.icon, contentDescription = category.name) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = if (selectedCategory == category) category.color else ComposeColor.LightGray,
-                        labelColor = if (selectedCategory == category) ComposeColor.White else ComposeColor.Black
-                    ),
-                    modifier = Modifier.padding(horizontal = 4.dp)
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Grouped LazyColumn for smsTransactions, filtered by selected chip
-        val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-        val filteredTxns =
-            selectedCategory?.let { cat -> smsTransactions.filter { cat.matcher(it) } }
-                ?: smsTransactions
-        val grouped = filteredTxns.groupBy { dateFormat.format(Date(it.messageTime)) }
-        Box(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                grouped.forEach { (date, txns) ->
-                    item {
-                        Text(
-                            date,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
-                            color = ComposeColor.White
-                        )
+                    // Action Buttons Row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Insights Button
+                        NeumorphicBorderBox(
+                            modifier = Modifier.size(40.dp),
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
+                        ) {
+                            IconButton(
+                                onClick = onInsightsClick,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Analytics,
+                                    contentDescription = "Insights",
+                                    tint = LightGray,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        
+                        // Refresh Button
+                        NeumorphicBorderBox(
+                            modifier = Modifier.size(40.dp),
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
+                        ) {
+                            IconButton(
+                                onClick = onRefreshClick,
+                                enabled = !isLoading,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Filled.Refresh,
+                                    contentDescription = if (isLoading) "Syncing..." else "Refresh",
+                                    tint = LightGray,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .graphicsLayer(
+                                            rotationZ = if (isLoading) rotationAnimation else 0f
+                                        )
+                                )
+                            }
+                        }
+                        
+                        // Mode Toggle Button
+                        NeumorphicBorderBox(
+                            modifier = Modifier.size(40.dp),
+                            cornerRadius = 4.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 2.dp,
+                            contentPadding = 0.dp
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    val newMode = when (mode) {
+                                        DateRangeMode.DAILY -> DateRangeMode.WEEKLY
+                                        DateRangeMode.WEEKLY -> DateRangeMode.MONTHLY
+                                        DateRangeMode.MONTHLY -> DateRangeMode.DAILY
+                                    }
+                                    onModeChange(newMode)
+                                    val cal = Calendar.getInstance()
+                                    val end = cal.timeInMillis
+                                    cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
+                                    val start = cal.timeInMillis
+                                    onDatePickerChange(start, end)
+                                    Toast.makeText(
+                                        context,
+                                        "Range changed to ${newMode.days} days",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                },
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Text(
+                                    text = mode.days.toString(),
+                                    color = LightGray,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
                     }
-                    items(txns) { txn ->
-                        val bankTxn =
-                            bankTransactions.find { it.amount == txn.amount && it.bankName == txn.bankName && it.messageTime == txn.messageTime }
-                        Card(
+                }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Bottom Row - Date Navigation
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // Previous Button
+                    NeumorphicBorderBox(
+                        modifier = Modifier.size(36.dp),
+                        cornerRadius = 4.dp,
+                        backgroundColor = Black,
+                        borderColor = Color.White.copy(alpha = 0.10f),
+                        shadowElevation = 2.dp,
+                        contentPadding = 0.dp
+                    ) {
+                        IconButton(
+                            onClick = onPrevClick,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                Icons.Filled.ArrowBack,
+                                contentDescription = "Previous",
+                                tint = LightGray,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    
+                    // Date Range Display
+                    Card(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 12.dp),
+                        shape = MaterialTheme.shapes.small,
+                        colors = CardDefaults.cardColors(
+                            containerColor = DarkGray
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 2.dp, horizontal = 8.dp),
-                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                .clickable { showDateRangePicker = true },
+                            contentAlignment = Alignment.Center
                         ) {
-                            Column(modifier = Modifier.padding(12.dp)) {
-                                val dateTimeFormat = remember {
-                                    SimpleDateFormat(
-                                        "MMM dd, yyyy, hh:mm a",
-                                        Locale.getDefault()
-                                    )
-                                }
-                                val dateTime = dateTimeFormat.format(Date(txn.messageTime))
-                                Text("Amount: ₹${txn.amount}", color = ComposeColor.White)
-                                Text("Bank: ${txn.bankName}", color = ComposeColor.White)
-                                Text(
-                                    "Message: ${txn.rawMessage}",
-                                    fontSize = 12.sp,
-                                    color = ComposeColor.Gray
-                                )
-                                // Show category as a chip
-                                val catName = bankTxn?.category ?: "Other"
-                                val catDef =
-                                    categoryDefs.find { it.name.equals(catName, ignoreCase = true) }
-                                        ?: categoryDefs.last()
-                                Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
-                                    AssistChip(
-                                        onClick = {},
-                                        label = { Text(catDef.name, color = ComposeColor.White) },
-                                        leadingIcon = {
-                                            Icon(
-                                                catDef.icon,
-                                                contentDescription = catDef.name
-                                            )
-                                        },
-                                        colors = AssistChipDefaults.assistChipColors(
-                                            containerColor = catDef.color,
-                                            labelColor = ComposeColor.White
-                                        )
-                                    )
-                                    if (bankTxn?.verified == true) {
-                                        Spacer(Modifier.width(8.dp))
-                                        AssistChip(
-                                            onClick = {},
-                                            label = {
-                                                Text(
-                                                    "Verified",
-                                                    color = ComposeColor.White,
-                                                )
-                                            },
-                                            leadingIcon = {
-                                                Icon(
-                                                    Icons.Filled.Check,
-                                                    contentDescription = "Verified"
-                                                )
-                                            },
-                                            colors = AssistChipDefaults.assistChipColors(
-                                                containerColor = ComposeColor(0xFF388E3C),
-                                                labelColor = ComposeColor.White
-                                            )
-                                        )
-                                    }
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    IconButton(onClick = {
-                                        val txnToEdit = bankTxn ?: BankTransaction(
-                                            amount = txn.amount,
-                                            bankName = txn.bankName,
-                                            tags = "",
-                                            messageTime = txn.messageTime,
-                                            count = null,
-                                            category = "Other"
-                                        )
-                                        editingTxn = txnToEdit
-                                        Toast.makeText(context, "Edit clicked", Toast.LENGTH_SHORT)
-                                            .show()
-                                    }) {
-                                        Icon(Icons.Filled.Edit, contentDescription = "Edit")
-                                    }
-                                }
-                                // Date & Time at the bottom, bold and larger
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(top = 8.dp),
-                                    horizontalArrangement = Arrangement.End
-                                ) {
-                                    Text(
-                                        text = dateTime,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = ComposeColor.White,
-                                        modifier = Modifier
-                                            .background(ComposeColor(0xFF222222))
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
+                            Text(
+                                text = formattedRange,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Medium
+                                ),
+                                color = LightGray,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    }
+                    
+                    // Next Button
+                    NeumorphicBorderBox(
+                        modifier = Modifier.size(36.dp),
+                        cornerRadius = 4.dp,
+                        backgroundColor = Black,
+                        borderColor = Color.White.copy(alpha = 0.10f),
+                        shadowElevation = 2.dp,
+                        contentPadding = 0.dp
+                    ) {
+                        IconButton(
+                            onClick = onNextClick,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                Icons.Filled.ArrowForward,
+                                contentDescription = "Next",
+                                tint = LightGray,
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
                 }
-            }
-
-            // Loading overlay
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(ComposeColor.Black.copy(alpha = 0.5f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-            // Edit dialog
-            if (editingTxn != null) {
-                AlertDialog(
-                    onDismissRequest = { editingTxn = null },
-                    title = { Text("Edit Transaction") },
-                    text = {
-                        Column {
-                            OutlinedTextField(
-                                value = editAmount,
-                                onValueChange = { editAmount = it },
-                                label = { Text("Amount") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = editType,
-                                onValueChange = { editType = it },
-                                label = { Text("Type") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            OutlinedTextField(
-                                value = editBankName,
-                                onValueChange = { editBankName = it },
-                                label = { Text("Bank Name") },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            // Category dropdown using ExposedDropdownMenuBox
-                            ExposedDropdownMenuBox(
-                                expanded = expanded,
-                                onExpandedChange = { expanded = it }
-                            ) {
-                                OutlinedTextField(
-                                    value = editCategory,
-                                    onValueChange = {},
-                                    label = { Text("Category") },
-                                    modifier = Modifier
-                                        .menuAnchor()
-                                        .fillMaxWidth(),
-                                    readOnly = true,
-                                    trailingIcon = {
-                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
-                                    }
-                                )
-                                ExposedDropdownMenu(
-                                    expanded = expanded,
-                                    onDismissRequest = { expanded = false }
-                                ) {
-                                    categoryDefs.forEach { cat ->
-                                        DropdownMenuItem(
-                                            text = { Text(cat.name) },
-                                            onClick = {
-                                                editCategory = cat.name
-                                                expanded = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    },
-                    confirmButton = {
-                        Button(onClick = {
-                            val amt = editAmount.toDoubleOrNull() ?: 0.0
-                            val updated = editingTxn!!.copy(
-                                amount = amt,
-                                tags = editType,
-                                bankName = editBankName,
-                                category = editCategory.ifBlank { "Other" },
-                                verified = true
-                            )
-                            onEdit(updated)
-                            editingTxn = null
-                        }) { Text("Save") }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = { editingTxn = null }) { Text("Cancel") }
-                    }
-                )
             }
         }
-        val context = LocalContext.current
-        if (showDateRangePicker) {
-            DatePickerDialog(
-                onDismissRequest = { showDateRangePicker = false },
-                confirmButton = {
-                    TextButton(onClick = {
-                        onDatePickerChange(
-                            dateRangePickerState.selectedStartDateMillis ?: -1L,
-                            dateRangePickerState.selectedEndDateMillis ?: -1L
-                        )
-                        showDateRangePicker = false
-                    }) {
-                        Text("OK")
+    }
+    
+    // Date Range Picker Dialog
+    if (showDateRangePicker) {
+        DatePickerDialog(
+            onDismissRequest = { showDateRangePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    val start = dateRangePickerState.selectedStartDateMillis
+                    val end = dateRangePickerState.selectedEndDateMillis
+                    if (start != null && end != null) {
+                        onDatePickerChange(start, end)
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDateRangePicker = false }) {
-                        Text("Cancel")
-                    }
+                    showDateRangePicker = false
+                }) {
+                    Text("OK")
                 }
-            ) {
-                DateRangePicker(state = dateRangePickerState)
+            },
+            dismissButton = {
+                TextButton(onClick = { showDateRangePicker = false }) {
+                    Text("Cancel")
+                }
             }
+        ) {
+            DateRangePicker(state = dateRangePickerState)
         }
     }
 }
@@ -601,7 +523,6 @@ fun MainScreenPreview() {
             onDatePickerChange = { _, _ -> },
             onRefreshClick = {},
             isLoading = false,
-            onAddDummyClick = {},
             bankTransactions = emptyList()
         )
     }
@@ -630,7 +551,7 @@ fun DateRangePickerDialogPreview() {
 // New screen composable for SMS transactions
 @Composable
 fun SmsTransactionsByDateScreen(
-    transactions: List<ParsedSmsTransaction>,
+    transactions: List<BankTransaction>,
     onBack: () -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
@@ -676,11 +597,6 @@ fun SmsTransactionsByDateScreen(
                             Text("Bank: ${txn.bankName}")
                             Text(
                                 "Date & Time: $dateTime",
-                                fontSize = 12.sp,
-                                color = ComposeColor.Gray
-                            )
-                            Text(
-                                "Message: ${txn.rawMessage}",
                                 fontSize = 12.sp,
                                 color = ComposeColor.Gray
                             )
@@ -771,7 +687,7 @@ fun SpendBarGraph(
     barColor: Color = MaterialTheme.colorScheme.primary,
     barWidth: Dp = 24.dp,
     barSpacing: Dp = 16.dp,
-    graphHeight: Dp = 180.dp
+    graphHeight: Dp = 250.dp
 ) {
     val zone = ZoneId.systemDefault()
     val startDate = Instant.ofEpochMilli(dateRange.first).atZone(zone).toLocalDate()
@@ -845,85 +761,85 @@ fun SpendBarGraph(
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun PreviewSpendBarGraph() {
-    val now = System.currentTimeMillis()
-    val dummyTransactions = listOf(
-        BankTransaction(
-            1,
-            100.0,
-            "HDFC",
-            "Food",
-            now - 6 * 24 * 60 * 60 * 1000,
-            null,
-            "Food",
-            false
-        ),
-        BankTransaction(
-            2,
-            200.0,
-            "ICICI",
-            "Travel",
-            now - 5 * 24 * 60 * 60 * 1000,
-            null,
-            "Travel",
-            false
-        ),
-        BankTransaction(
-            3,
-            50.0,
-            "SBI",
-            "Cigarette",
-            now - 4 * 24 * 60 * 60 * 1000,
-            null,
-            "Cigarette",
-            false
-        ),
-        BankTransaction(
-            4,
-            80.0,
-            "Axis",
-            "Food",
-            now - 3 * 24 * 60 * 60 * 1000,
-            null,
-            "Food",
-            false
-        ),
-        BankTransaction(
-            5,
-            120.0,
-            "Kotak",
-            "Other",
-            now - 2 * 24 * 60 * 60 * 1000,
-            null,
-            "Other",
-            false
-        ),
-        BankTransaction(
-            6,
-            60.0,
-            "HDFC",
-            "Food",
-            now - 1 * 24 * 60 * 60 * 1000,
-            null,
-            "Food",
-            false
-        ),
-        BankTransaction(7, 90.0, "ICICI", "Travel", now, null, "Travel", false)
-    )
-    val dateRange = Pair(now - 6 * 24 * 60 * 60 * 1000, now)
-    SamStudioAppTheme {
-        SpendBarGraph(
-            transactions = dummyTransactions,
-            dateRange = dateRange,
-            mode = DateRangeMode.WEEKLY,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        )
-    }
-}
+//@Preview(showBackground = true)
+//@Composable
+//fun PreviewSpendBarGraph() {
+//    val now = System.currentTimeMillis()
+//    val dummyTransactions = listOf(
+//        BankTransaction(
+//            1,
+//            100.0,
+//            "HDFC",
+//            "Food",
+//            now - 6 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Food",
+//            false
+//        ),
+//        BankTransaction(
+//            2,
+//            200.0,
+//            "ICICI",
+//            "Travel",
+//            now - 5 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Travel",
+//            false
+//        ),
+//        BankTransaction(
+//            3,
+//            50.0,
+//            "SBI",
+//            "Cigarette",
+//            now - 4 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Cigarette",
+//            false
+//        ),
+//        BankTransaction(
+//            4,
+//            80.0,
+//            "Axis",
+//            "Food",
+//            now - 3 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Food",
+//            false
+//        ),
+//        BankTransaction(
+//            5,
+//            120.0,
+//            "Kotak",
+//            "Other",
+//            now - 2 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Other",
+//            false
+//        ),
+//        BankTransaction(
+//            6,
+//            60.0,
+//            "HDFC",
+//            "Food",
+//            now - 1 * 24 * 60 * 60 * 1000,
+//            null,
+//            "Food",
+//            false
+//        ),
+//        BankTransaction(7, 90.0, "ICICI", "Travel", now, null, "Travel", false)
+//    )
+//    val dateRange = Pair(now - 6 * 24 * 60 * 60 * 1000, now)
+//    SamStudioAppTheme {
+//        SpendBarGraph(
+//            transactions = dummyTransactions,
+//            dateRange = dateRange,
+//            mode = DateRangeMode.WEEKLY,
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .padding(16.dp)
+//        )
+//    }
+//}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -931,10 +847,6 @@ fun LoadMainScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
 
     // UI state only
-    var showEditSheet by remember { mutableStateOf(false) }
-    var editId by remember { mutableStateOf<Int?>(null) }
-    var editAmount by remember { mutableStateOf("") }
-    var editType by remember { mutableStateOf("") }
     var editingTransaction by remember { mutableStateOf<BankTransaction?>(null) }
     var showDialog by remember { mutableStateOf(false) }
     var selectedTabIndex by remember { mutableStateOf(0) }
@@ -947,6 +859,9 @@ fun LoadMainScreen(viewModel: MainViewModel) {
     val currentRange by viewModel.dateRange.collectAsState()
     val mode by viewModel.dateRangeMode.collectAsState()
     val prevRange by viewModel.prevRange.collectAsState()
+    
+    // Real-time message detection state
+    val newMessageDetected by viewModel.newMessageDetected.collectAsState()
 
     val prefs = context.getSharedPreferences(MainViewModel.CORE_NAME, Context.MODE_PRIVATE)
     viewModel.loadInitialPreferences(prefs)
@@ -965,13 +880,14 @@ fun LoadMainScreen(viewModel: MainViewModel) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(DarkGray)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = 12.dp, vertical = 24.dp)
+                    .statusBarsPadding()
+                    //.background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = 12.dp, vertical = 4.dp)
             ) {
                 ToolbarWithDateRange(
                     currentRange = currentRange,
@@ -995,23 +911,46 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                         savePreferences()
                     },
                     onRefreshClick = {
-                        Log.d("SamStudio", "Refresh button clicked, isLoading: $isLoading")
+                        Log.d("SamStudio", "UI: Refresh button clicked, isLoading: $isLoading")
+                        Log.d("SamStudio", "UI: About to check SMS permission")
                         if (!isLoading) {
-                            val permissionGranted = ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.READ_SMS
-                            ) == PackageManager.PERMISSION_GRANTED
-
-                            Log.d("SamStudio", "SMS permission granted: $permissionGranted")
-
-                            if (permissionGranted) {
-                                viewModel.syncFromSms(context)
+                            // Check cached permission state first
+                            if (PermissionManager.isSmsPermissionGranted()) {
+                                Log.d("SamStudio", "UI: Permission already granted, starting sync")
+                                viewModel.syncFromSms(context) { newTransactionCount ->
+                                    when (newTransactionCount) {
+                                        -1 -> Toast.makeText(context, "Sync failed", Toast.LENGTH_SHORT).show()
+                                        0 -> Toast.makeText(context, "No new transactions found", Toast.LENGTH_SHORT).show()
+                                        else -> Toast.makeText(context, "Sync completed: $newTransactionCount new transactions", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
                             } else {
-                                Log.d("SamStudio", "Requesting SMS permission...")
-                                // requestSmsPermissionLauncher.launch(Manifest.permission.READ_SMS)
+                                // Check actual permission status
+                                val permissionGranted = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.READ_SMS
+                                ) == PackageManager.PERMISSION_GRANTED
+
+                                Log.d("SamStudio", "UI: SMS permission granted: $permissionGranted")
+
+                                if (permissionGranted) {
+                                    Log.d("SamStudio", "UI: Permission granted, calling viewModel.syncFromSms")
+                                    viewModel.syncFromSms(context) { newTransactionCount ->
+                                        when (newTransactionCount) {
+                                            -1 -> Toast.makeText(context, "Sync failed", Toast.LENGTH_SHORT).show()
+                                            0 -> Toast.makeText(context, "No new transactions found", Toast.LENGTH_SHORT).show()
+                                            else -> Toast.makeText(context, "Sync completed: $newTransactionCount new transactions", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                    Log.d("SamStudio", "UI: viewModel.syncFromSms called successfully")
+                                } else {
+                                    Log.d("SamStudio", "UI: Permission not granted, requesting SMS permission...")
+                                    PermissionManager.requestSmsPermission()
+                                    Log.d("SamStudio", "UI: Permission request launched")
+                                }
                             }
                         } else {
-                            Log.d("SamStudio", "Already loading, ignoring refresh click")
+                            Log.d("SamStudio", "UI: Already loading, ignoring refresh click")
                         }
                     },
                     onInsightsClick = {
@@ -1020,115 +959,710 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                         context.startActivity(intent)
                     },
                     isLoading = isLoading,
-                    onAddDummyClick = {
-                    },
                     smsTransactions = filteredSmsTransactions,
                     bankTransactions = transactions,
                     onEdit = { editingTransaction = it; showDialog = true }
                 )
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Tabs
                 MainTabs(
                     selectedTabIndex = selectedTabIndex,
-                    onTabSelected = { selectedTabIndex = it })
-
-                // Tab content
-                MainTabContent(
-                    selectedTabIndex = selectedTabIndex,
-                    roomTransactions = transactions,
-                    currentRange = currentRange,
-                    mode = mode,
-                    categories = categories,
-                    onEditClick = { categoryName, subType ->
-                        editId = subType.id
-                        editAmount = subType.amount.toString()
-                        editType = categoryName
-                        showEditSheet = true
-                    }
+                    onTabSelected = { selectedTabIndex = it }
                 )
-            }
-            
-            // Show bottom sheet for editing (must be inside setContent)
-            if (showEditSheet && editId != null) {
-                ModalBottomSheet(
-                    onDismissRequest = { showEditSheet = false }
-                ) {
-                    Column(Modifier.padding(24.dp)) {
-                        Text("Edit Transaction", style = MaterialTheme.typography.titleLarge)
-                        Spacer(Modifier.height(16.dp))
-                        androidx.compose.material3.OutlinedTextField(
-                            value = editAmount,
-                            onValueChange = {
-                                editAmount = it.filter { ch -> ch.isDigit() || ch == '.' }
-                            },
-                            label = { Text("Amount") },
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Number
-                            ),
-                            singleLine = true
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        val typeOptions = categories.map { it.first }
-                        var expanded by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expanded,
-                            onExpandedChange = { expanded = !expanded }
-                        ) {
-                            androidx.compose.material3.OutlinedTextField(
-                                value = editType,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Type") },
-                                trailingIcon = { Icons.Filled.KeyboardArrowDown },
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Tab Content
+                when (selectedTabIndex) {
+                    0 -> {
+                        // Transactions Tab
+                        if (isLoading) {
+                            Box(
                                 modifier = Modifier
-                                    .width(180.dp)
-                                    .menuAnchor()
-                                    .clickable { expanded = true }
-                            )
-                            androidx.compose.material3.DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
+                                    .fillMaxSize()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
                             ) {
-                                typeOptions.forEach { type ->
-                                    androidx.compose.material3.DropdownMenuItem(
-                                        text = { Text(type) },
-                                        onClick = {
-                                            editType = type
-                                            expanded = false
-                                        }
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    val rotationAnimation by rememberInfiniteTransition().animateFloat(
+                                        initialValue = 0f,
+                                        targetValue = 360f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(1000, easing = LinearEasing),
+                                            repeatMode = RepeatMode.Restart
+                                        )
+                                    )
+                                    Icon(
+                                        Icons.Filled.Refresh,
+                                        contentDescription = "Syncing...",
+                                        tint = LightGray,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .graphicsLayer(rotationZ = rotationAnimation)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Syncing SMS transactions...",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = LightGray,
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                                     )
                                 }
                             }
-                        }
-                        Spacer(Modifier.height(16.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            TextButton(onClick = { showEditSheet = false }) { Text("Cancel") }
-                            Spacer(Modifier.width(8.dp))
-                            TextButton(onClick = {
-                                val amt = editAmount.toDoubleOrNull()
-                                if (amt != null && editType.isNotBlank() && editId != null) {
-                                    val txn = transactions.find { it.id == editId }
-                                    if (txn != null) {
-                                        val updatedTxn = txn.copy(amount = amt, tags = editType)
-                                        viewModel.updateTransaction(updatedTxn)
-                                    }
-                                    showEditSheet = false
+                        } else {
+                            TransactionList(
+                                smsTransactions = filteredSmsTransactions,
+                                bankTransactions = transactions,
+                                onEdit = { transaction ->
+                                    viewModel.findAndOverwriteTransaction(transaction)
                                 }
-                            }) { Text("Save") }
+                            )
                         }
+                    }
+                    1 -> {
+                        // Insights Tab with detailed charts
+                        DetailedInsightsTab(
+                            transactions = filteredSmsTransactions,
+                            dateRange = currentRange,
+                            mode = mode,
+                            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp)
+                        )
                     }
                 }
             }
+            
+
 
             if (showDialog) {
                 EditTransactionDialog(
                     transaction = editingTransaction,
                     onDismiss = { showDialog = false },
                     onSave = {
-                        if (it.id == 0) viewModel.addTransaction(it) else viewModel.updateTransaction(
-                            it
-                        )
+                      //  viewModel.saveTransaction(it)
+                        viewModel.findAndOverwriteTransaction(it)
                         showDialog = false
                     }
+                )
+            }
+            
+            // New message popup
+            newMessageDetected?.let { transaction ->
+                NewMessagePopup(
+                    transaction = transaction,
+                    onDismiss = { viewModel.dismissNewMessagePopup() },
+                    onSave = { bankTransaction ->
+                        viewModel.findAndOverwriteTransaction(bankTransaction)
+                        viewModel.dismissNewMessagePopup()
+                    }
+                )
+            }
+            
+
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TransactionList(
+    smsTransactions: List<BankTransaction>,
+    bankTransactions: List<BankTransaction>,
+    onEdit: (BankTransaction) -> Unit
+) {
+    val context = LocalContext.current
+    var editingTxn by remember { mutableStateOf<BankTransaction?>(null) }
+    var editAmount by remember { mutableStateOf("") }
+    var editType by remember { mutableStateOf("") }
+    var editBankName by remember { mutableStateOf("") }
+    var editCategory by remember { mutableStateOf("Other") }
+
+    // Keep edit fields in sync with editingTxn
+    LaunchedEffect(editingTxn) {
+        editingTxn?.let {
+            editAmount = it.amount.toString()
+            editType = it.tags
+            editBankName = it.bankName
+            editCategory = it.category.ifBlank { "Other" }
+        }
+    }
+
+    // Filter chips row
+    var selectedCategory by remember { mutableStateOf<CategoryDef?>(null) }
+    val allCategory = CategoryDef(
+        name = "All",
+        icon = Icons.Filled.List,
+        color = ComposeColor(0xFF0288D1)
+    ) { true }
+    val filterCategories = listOf(allCategory) + categoryDefs
+    
+    // Memoize expensive operations
+    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
+    
+    val filteredTxns = remember(smsTransactions, selectedCategory) {
+        selectedCategory?.let { cat ->
+            if (cat.name == "All") smsTransactions else smsTransactions.filter { it.category.equals(cat.name, ignoreCase = true) }
+        } ?: smsTransactions
+    }
+    
+    val grouped = remember(filteredTxns, dateFormat) {
+        filteredTxns.groupBy { dateFormat.format(Date(it.messageTime)) }
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Filter chips row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(vertical = 4.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            filterCategories.forEach { category ->
+                val isSelected = selectedCategory?.name == category.name || (selectedCategory == null && category.name == "All")
+                val catColor = if (category.name == "All") ComposeColor(0xFF0288D1) else (category as? CategoryDef)?.color ?: ComposeColor(0xFF0288D1)
+                NeumorphicBorderBox(
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                    cornerRadius = 4.dp,
+                    backgroundColor = if (isSelected) catColor.copy(alpha = 0.18f) else Black,
+                    borderColor = if (isSelected) catColor else Color.White.copy(alpha = 0.10f),
+                    shadowElevation = if (isSelected) 4.dp else 2.dp,
+                    contentPadding = 6.dp
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.clickable {
+                            selectedCategory = if (category.name == "All") null else category
+                        }
+                    ) {
+                        Icon(
+                            category.icon, 
+                            contentDescription = category.name, 
+                            tint = catColor,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            category.name, 
+                            color = if (isSelected) catColor else LightGray,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Grouped LazyColumn for smsTransactions, filtered by selected chip
+        Box(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                grouped.forEach { (date, txns) ->
+                    items(txns) { txn ->
+                        val bankTxn = remember(txn, bankTransactions) {
+                            bankTransactions.find { 
+                                it.amount == txn.amount && 
+                                it.bankName == txn.bankName && 
+                                it.messageTime == txn.messageTime 
+                            }
+                        }
+                        
+                        NeumorphicBorderBox(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp, horizontal = 8.dp),
+                            cornerRadius = 12.dp,
+                            backgroundColor = DarkGray,
+                            borderColor = Color.White.copy(alpha = 0.10f),
+                            shadowElevation = 3.dp,
+                            contentPadding = 16.dp
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                val dateTime = remember(txn.messageTime, dateTimeFormat) {
+                                    dateTimeFormat.format(Date(txn.messageTime))
+                                }
+                                val catName = bankTxn?.category ?: "Other"
+                                val catDef = remember(catName) {
+                                    categoryDefs.find { it.name.equals(catName, ignoreCase = true) }
+                                        ?: categoryDefs.last()
+                                }
+                                // Category icon in colored background (left)
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(catDef.color, shape = RoundedCornerShape(12.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        catDef.icon,
+                                        contentDescription = catDef.name,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
+                                // Main info (center, expanded)
+                                Column(
+                                    modifier = Modifier.weight(1f),
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = catDef.name,
+                                            fontSize = 15.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color.White
+                                        )
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "₹${txn.amount}",
+                                            fontSize = 17.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = catDef.color
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = txn.bankName,
+                                            fontSize = 11.sp,
+                                            color = LightGray.copy(alpha = 0.6f)
+                                        )
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = dateTime,
+                                            fontSize = 10.sp,
+                                            color = LightGray.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                }
+                                // Actions (right)
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    bankTxn?.let { transaction ->
+                                        IconButton(
+                                            onClick = { editingTxn = transaction },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Edit,
+                                                contentDescription = "Edit Transaction",
+                                                tint = LightGray.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                    }
+                                    if (bankTxn?.verified == true) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(top = 2.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Check,
+                                                contentDescription = "Verified",
+                                                tint = LightGray.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(13.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text(
+                                                text = "✓",
+                                                fontSize = 10.sp,
+                                                color = LightGray.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Edit dialog
+            if (editingTxn != null) {
+                AlertDialog(
+                    onDismissRequest = { editingTxn = null },
+                    title = { Text("Edit Transaction") },
+                    text = {
+                        Column {
+                            OutlinedTextField(
+                                value = editAmount,
+                                onValueChange = { editAmount = it },
+                                label = { Text("Amount") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editType,
+                                onValueChange = { editType = it },
+                                label = { Text("Type") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            OutlinedTextField(
+                                value = editBankName,
+                                onValueChange = { editBankName = it },
+                                label = { Text("Bank") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                            Spacer(Modifier.height(8.dp))
+                            // Simplified dropdown to avoid coroutine issues
+                            var showCategoryDropdown by remember { mutableStateOf(false) }
+                            
+                            OutlinedTextField(
+                                value = editCategory,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Category") },
+                                trailingIcon = { 
+                                    Icon(
+                                        Icons.Filled.KeyboardArrowDown,
+                                        contentDescription = "Select Category",
+                                        modifier = Modifier.clickable { showCategoryDropdown = !showCategoryDropdown }
+                                    )
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showCategoryDropdown = !showCategoryDropdown }
+                            )
+                            
+                            if (showCategoryDropdown) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(top = 4.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                                ) {
+                                    Column {
+                                        categoryDefs.forEach { category ->
+                                            Text(
+                                                text = category.name,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable {
+                                                        editCategory = category.name
+                                                        showCategoryDropdown = false
+                                                    }
+                                                    .padding(16.dp),
+                                                color = if (editCategory == category.name) 
+                                                    MaterialTheme.colorScheme.primary 
+                                                else 
+                                                    MaterialTheme.colorScheme.onSurface
+                                            )
+                                            if (category != categoryDefs.last()) {
+                                                HorizontalDivider()
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        Button(onClick = {
+                            editingTxn?.let { txn ->
+                                val updatedTxn = txn.copy(
+                                    amount = editAmount.toDoubleOrNull() ?: txn.amount,
+                                    tags = editType,
+                                    bankName = editBankName,
+                                    category = editCategory
+                                )
+                                onEdit(updatedTxn)
+                            }
+                            editingTxn = null
+                        }) {
+                            Text("Save")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { editingTxn = null }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun CategoryBarChart(
+    transactions: List<BankTransaction>,
+    modifier: Modifier = Modifier
+) {
+    // Function to normalize category names
+    fun normalizeCategory(category: String): String {
+        return when {
+            category.equals("ciggret", ignoreCase = true) -> "Cigarette"
+            category.equals("cigarette", ignoreCase = true) -> "Cigarette"
+            category.equals("food", ignoreCase = true) -> "Food"
+            category.equals("travel", ignoreCase = true) -> "Travel"
+            else -> "Other"
+        }
+    }
+    
+    val categoryData = transactions
+        .groupBy { normalizeCategory(it.category) }
+        .mapValues { (_, txns) -> txns.sumOf { it.amount } }
+        .toList()
+        .sortedByDescending { it.second }
+
+    // Debug logging
+    LaunchedEffect(categoryData) {
+        println("CategoryBarChart - All categories found: ${categoryData.map { it.first }}")
+        println("CategoryBarChart - Original transactions: ${transactions.map { "${it.category}: ₹${it.amount}" }}")
+        println("CategoryBarChart - Normalized transactions: ${transactions.map { "${normalizeCategory(it.category)}: ₹${it.amount}" }}")
+    }
+
+    if (categoryData.isEmpty()) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "No category data available",
+                color = Color.Gray
+            )
+        }
+        return
+    }
+
+    val chartEntries = categoryData.mapIndexed { index, (_, amount) ->
+        entryOf(index.toFloat(), amount.toFloat())
+    }
+    val chartEntryModel = entryModelOf(chartEntries)
+    val categoryLabels = categoryData.map { it.first }
+    val barColors = listOf(
+        Color(0xFFEF6C00), // Food
+        Color(0xFF6D4C41), // Cigarette
+        Color(0xFF388E3C), // Travel
+        Color(0xFF0288D1), // Other
+        Color(0xFF1976D2), // Extra
+        Color(0xFF8E24AA)  // Extra
+    )
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Spending by Category",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        Chart(
+            chart = columnChart(),
+            model = chartEntryModel,
+            startAxis = startAxis(),
+            bottomAxis = bottomAxis(
+                valueFormatter = { value, _ ->
+                    categoryLabels.getOrNull(value.toInt()) ?: ""
+                },
+                guideline = null
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height((60 * categoryData.size).dp.coerceAtLeast(180.dp))
+        )
+        // Category legend
+        Column(
+            modifier = Modifier.padding(top = 8.dp)
+        ) {
+            categoryData.forEachIndexed { idx, (category, amount) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(16.dp)
+                                .background(barColors[idx % barColors.size], shape = RoundedCornerShape(4.dp))
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = category,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                    Text(
+                        text = "₹${String.format("%.2f", amount)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailedInsightsTab(
+    transactions: List<BankTransaction>,
+    dateRange: Pair<Long, Long>,
+    mode: DateRangeMode,
+    modifier: Modifier = Modifier
+) {
+    // Debug logging for the entire insights tab
+    LaunchedEffect(transactions) {
+        println("=== DETAILED INSIGHTS TAB DEBUG ===")
+        println("Total transactions received: ${transactions.size}")
+        println("All transaction categories: ${transactions.map { it.category }}")
+        println("Unique categories: ${transactions.map { it.category }.distinct()}")
+        println("Date range: $dateRange")
+        println("Mode: $mode")
+        println("==================================")
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            SpendingSummary(
+                transactions = transactions,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        
+        item {
+            CategoryBarChart(
+                transactions = transactions,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+        
+        item {
+            SpendBarGraph(
+                transactions = transactions,
+                dateRange = dateRange,
+                mode = mode,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+    }
+}
+
+@Composable
+fun SpendingSummary(
+    transactions: List<BankTransaction>,
+    modifier: Modifier = Modifier
+) {
+    val totalSpent = transactions.sumOf { it.amount }
+    val avgSpent = if (transactions.isNotEmpty()) totalSpent / transactions.size else 0.0
+    val maxSpent = transactions.maxOfOrNull { it.amount } ?: 0.0
+    val categoryCount = transactions.map { it.category }.distinct().size
+
+    // Debug logging for spending summary
+    LaunchedEffect(transactions) {
+        println("=== SPENDING SUMMARY DEBUG ===")
+        println("Total spent: $totalSpent")
+        println("Average spent: $avgSpent")
+        println("Max spent: $maxSpent")
+        println("Category count: $categoryCount")
+        println("All categories: ${transactions.map { it.category }.distinct()}")
+        println("==============================")
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = "Spending Summary",
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "₹${String.format("%.2f", totalSpent)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Total Spent",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "₹${String.format("%.2f", avgSpent)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = "Average",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "₹${String.format("%.2f", maxSpent)}",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                Text(
+                    text = "Highest",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = transactions.size.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Transactions",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                )
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = categoryCount.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                Text(
+                    text = "Categories",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             }
         }

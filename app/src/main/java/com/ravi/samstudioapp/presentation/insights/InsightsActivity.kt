@@ -14,7 +14,6 @@ import com.ravi.samstudioapp.ui.MainTabContent
 import com.ravi.samstudioapp.ui.categories
 import com.ravi.samstudioapp.ui.DateRangeMode
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import com.ravi.samstudioapp.ui.ExpenseSubType
 import java.util.Calendar
 
@@ -38,51 +37,46 @@ fun InsightsScreen() {
     val sampleTransactions = remember {
         listOf(
             BankTransaction(
-                id = 1,
+                messageTime = System.currentTimeMillis() - 6 * 24 * 60 * 60 * 1000,
                 amount = 100.0,
                 bankName = "HDFC",
                 tags = "Food",
-                messageTime = System.currentTimeMillis() - 6 * 24 * 60 * 60 * 1000,
                 count = null,
                 category = "Food",
                 verified = false
             ),
             BankTransaction(
-                id = 2,
+                messageTime = System.currentTimeMillis() - 5 * 24 * 60 * 60 * 1000,
                 amount = 200.0,
                 bankName = "ICICI",
                 tags = "Travel",
-                messageTime = System.currentTimeMillis() - 5 * 24 * 60 * 60 * 1000,
                 count = null,
                 category = "Travel",
                 verified = false
             ),
             BankTransaction(
-                id = 3,
+                messageTime = System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000,
                 amount = 50.0,
                 bankName = "SBI",
                 tags = "Cigarette",
-                messageTime = System.currentTimeMillis() - 4 * 24 * 60 * 60 * 1000,
                 count = null,
                 category = "Cigarette",
                 verified = false
             ),
             BankTransaction(
-                id = 4,
+                messageTime = System.currentTimeMillis() - 3 * 24 * 60 * 60 * 1000,
                 amount = 80.0,
                 bankName = "Axis",
                 tags = "Food",
-                messageTime = System.currentTimeMillis() - 3 * 24 * 60 * 60 * 1000,
                 count = null,
                 category = "Food",
                 verified = false
             ),
             BankTransaction(
-                id = 5,
+                messageTime = System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000,
                 amount = 120.0,
                 bankName = "Kotak",
                 tags = "Other",
-                messageTime = System.currentTimeMillis() - 2 * 24 * 60 * 60 * 1000,
                 count = null,
                 category = "Other",
                 verified = false

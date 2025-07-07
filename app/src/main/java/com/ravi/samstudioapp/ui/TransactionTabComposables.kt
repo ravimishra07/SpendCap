@@ -2,6 +2,7 @@ package com.ravi.samstudioapp.ui
 
 import android.content.SharedPreferences
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,73 +23,67 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import kotlin.collections.component1
 import kotlin.collections.component2
 
+private val Black = androidx.compose.ui.graphics.Color(0xFF121212)
+private val DarkGray = androidx.compose.ui.graphics.Color(0xFF232323)
+private val LightGray = androidx.compose.ui.graphics.Color(0xFFE0E0E0)
+
 @Composable
 fun MainTabIndicator(tabPositions: List<TabPosition>, selectedTabIndex: Int) {
-    TabRowDefaults.Indicator(
+    TabRowDefaults.SecondaryIndicator(
         modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
         height = 2.dp,
-        color = MaterialTheme.colorScheme.primary
+        color = LightGray
     )
 }
 
 @Composable
 fun MainTabs(selectedTabIndex: Int, onTabSelected: (Int) -> Unit) {
     val tabs = listOf("Transactions", "Insights")
-    TabRow(
-        selectedTabIndex = selectedTabIndex,
-        indicator = { tabPositions ->
-            MainTabIndicator(tabPositions, selectedTabIndex)
-        },
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+    
+    // NeumorphicBorderBox wrapper for the entire tab row
+    NeumorphicBorderBox(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 8.dp)
             .height(48.dp),
-        divider = {}
+        cornerRadius = 8.dp,
+        backgroundColor = Black,
+        borderColor = Color.White.copy(alpha = 0.10f),
+        shadowElevation = 2.dp,
+        contentPadding = 0.dp
     ) {
-        tabs.forEachIndexed { index, title ->
-            Tab(
-                selected = selectedTabIndex == index,
-                onClick = { onTabSelected(index) },
-                modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 4.dp)
-                    .height(40.dp),
-                text = {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (selectedTabIndex == index)
-                            MaterialTheme.colorScheme.primary
-                        else
-                            MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                    )
-                },
-                icon = {
-                    when (index) {
-                        0 -> Icon(
-                            Icons.Filled.List,
-                            contentDescription = "Transactions",
-                            tint = if (selectedTabIndex == index)
-                                MaterialTheme.colorScheme.primary
+        TabRow(
+            selectedTabIndex = selectedTabIndex,
+            indicator = { tabPositions ->
+                MainTabIndicator(tabPositions, selectedTabIndex)
+            },
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            contentColor = LightGray,
+            modifier = Modifier.fillMaxSize(),
+            divider = {}
+        ) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTabIndex == index,
+                    onClick = { onTabSelected(index) },
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .height(40.dp),
+                    text = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (selectedTabIndex == index)
+                                LightGray
                             else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                        )
-                        1 -> Icon(
-                            Icons.Filled.Analytics,
-                            contentDescription = "Insights",
-                            tint = if (selectedTabIndex == index)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                                LightGray.copy(alpha = 0.5f)
                         )
                     }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -106,8 +101,7 @@ fun ToolbarWithDateRange(
     onRefreshClick: () -> Unit,
     onInsightsClick: () -> Unit,
     isLoading: Boolean,
-    onAddDummyClick: () -> Unit,
-    smsTransactions: List<ParsedSmsTransaction>,
+    smsTransactions: List<BankTransaction>,
     bankTransactions: List<BankTransaction>,
     onEdit: (BankTransaction) -> Unit
 ) {
@@ -121,7 +115,6 @@ fun ToolbarWithDateRange(
         onRefreshClick = onRefreshClick,
         onInsightsClick = onInsightsClick,
         isLoading = isLoading,
-        onAddDummyClick = onAddDummyClick,
         smsTransactions = smsTransactions,
         bankTransactions = bankTransactions,
         onEdit = onEdit
@@ -163,8 +156,8 @@ fun TransactionTabContent(
                     iconColor = color as Color,
                     subTypes = txns.map {
                         ExpenseSubType(
-                            it.id,
-                            "Txn ${it.id}",
+                            it.messageTime.toInt(),
+                            "Txn ${it.messageTime}",
                             it.amount
                         )
                     }
@@ -183,10 +176,10 @@ fun InsightsTabContent(
     mode: DateRangeMode
 ) {
     Spacer(modifier = Modifier.height(8.dp))
-    SpendBarGraph(
+    DetailedInsightsTab(
         transactions = roomTransactions,
         dateRange = currentRange,
         mode = mode,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp)
     )
 }
