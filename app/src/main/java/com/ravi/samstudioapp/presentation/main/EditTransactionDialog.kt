@@ -1,6 +1,7 @@
 package com.ravi.samstudioapp.presentation.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -22,6 +23,10 @@ fun EditTransactionDialog(
     var amount by remember { mutableStateOf(transaction?.amount?.toString() ?: "") }
     var type by remember { mutableStateOf(transaction?.tags ?: "") }
     var bankName by remember { mutableStateOf(transaction?.bankName ?: "") }
+    var category by remember { mutableStateOf(transaction?.category ?: "Other") }
+    var verified by remember { mutableStateOf(transaction?.verified ?: false) }
+    val categories = listOf("Food", "Cigarette", "Travel", "Other")
+    var showCategoryDropdown by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (transaction == null) "Add Transaction" else "Edit Transaction") },
@@ -47,6 +52,44 @@ fun EditTransactionDialog(
                     label = { Text("Bank Name") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Category") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showCategoryDropdown = !showCategoryDropdown }
+                )
+                if (showCategoryDropdown) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(Color.White)
+                    ) {
+                        categories.forEach { cat ->
+                            Text(
+                                text = cat,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(8.dp)
+                                    .clickable {
+                                        category = cat
+                                        showCategoryDropdown = false
+                                    }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    androidx.compose.material3.Checkbox(
+                        checked = verified,
+                        onCheckedChange = { verified = it }
+                    )
+                    Text("Verified")
+                }
             }
         },
         confirmButton = {
@@ -57,7 +100,9 @@ fun EditTransactionDialog(
                     amount = amt,
                     tags = type,
                     bankName = bankName,
-                    count = transaction?.count
+                    count = transaction?.count,
+                    category = category,
+                    verified = verified
                 )
                 onSave(txn)
             }) { Text("Save") }
