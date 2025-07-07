@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import kotlin.collections.component1
 import kotlin.collections.component2
 
@@ -102,7 +101,7 @@ fun ToolbarWithDateRange(
     onRefreshClick: () -> Unit,
     onInsightsClick: () -> Unit,
     isLoading: Boolean,
-    smsTransactions: List<ParsedSmsTransaction>,
+    smsTransactions: List<BankTransaction>,
     bankTransactions: List<BankTransaction>,
     onEdit: (BankTransaction) -> Unit
 ) {

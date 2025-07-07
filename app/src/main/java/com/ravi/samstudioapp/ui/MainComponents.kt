@@ -87,7 +87,6 @@ import com.patrykandpatrick.vico.compose.chart.column.columnChart
 import com.patrykandpatrick.vico.core.entry.entryModelOf
 import com.patrykandpatrick.vico.core.entry.entryOf
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import com.ravi.samstudioapp.presentation.insights.InsightsActivity
 import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
 import com.ravi.samstudioapp.presentation.main.MainViewModel
@@ -138,7 +137,7 @@ data class CategoryDef(
     val name: String,
     val icon: ImageVector,
     val color: ComposeColor,
-    val matcher: (ParsedSmsTransaction) -> Boolean
+    val matcher: (BankTransaction) -> Boolean
 )
 
 val categoryDefs = listOf(
@@ -147,7 +146,7 @@ val categoryDefs = listOf(
         Icons.Filled.Fastfood,
         ComposeColor(0xFFEF6C00)
     ) { txn ->
-        txn.rawMessage.contains("food", ignoreCase = true) || txn.bankName.contains(
+        txn.tags.contains("food", ignoreCase = true) || txn.bankName.contains(
             "food",
             ignoreCase = true
         )
@@ -156,12 +155,12 @@ val categoryDefs = listOf(
         "Cigarette",
         Icons.Filled.LocalCafe,
         ComposeColor(0xFF6D4C41)
-    ) { txn -> txn.rawMessage.contains("cigarette", ignoreCase = true) },
+    ) { txn -> txn.tags.contains("cigarette", ignoreCase = true) },
     CategoryDef(
         "Travel",
         Icons.Filled.DirectionsCar,
         ComposeColor(0xFF388E3C)
-    ) { txn -> txn.rawMessage.contains("travel", ignoreCase = true) },
+    ) { txn -> txn.tags.contains("travel", ignoreCase = true) },
     CategoryDef(
         "Other",
         Icons.Filled.LocalDrink,
@@ -221,7 +220,7 @@ fun CustomToolbarWithDateRange(
     mode: DateRangeMode,
     onModeChange: (DateRangeMode) -> Unit,
     onDatePickerChange: (Long, Long) -> Unit,
-    smsTransactions: List<ParsedSmsTransaction> = emptyList(),
+    smsTransactions: List<BankTransaction> = emptyList(),
     bankTransactions: List<BankTransaction> = emptyList(),
     onEdit: (BankTransaction) -> Unit = {}
 ) {
@@ -543,7 +542,7 @@ fun DateRangePickerDialogPreview() {
 // New screen composable for SMS transactions
 @Composable
 fun SmsTransactionsByDateScreen(
-    transactions: List<ParsedSmsTransaction>,
+    transactions: List<BankTransaction>,
     onBack: () -> Unit
 ) {
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
@@ -593,7 +592,7 @@ fun SmsTransactionsByDateScreen(
                                 color = ComposeColor.Gray
                             )
                             Text(
-                                "Message: ${txn.rawMessage}",
+                                "Message: ${txn.tags}",
                                 fontSize = 12.sp,
                                 color = ComposeColor.Gray
                             )
@@ -1090,7 +1089,7 @@ fun LoadMainScreen(viewModel: MainViewModel) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionList(
-    smsTransactions: List<ParsedSmsTransaction>,
+    smsTransactions: List<BankTransaction>,
     bankTransactions: List<BankTransaction>,
     onEdit: (BankTransaction) -> Unit
 ) {
@@ -1199,7 +1198,7 @@ fun TransactionList(
                                 Text("Amount: ₹${txn.amount}", color = LightGray)
                                 Text("Bank: ${txn.bankName}", color = LightGray)
                                 Text(
-                                    "Message: ${txn.rawMessage}",
+                                    "Message: ${txn.tags}",
                                     fontSize = 12.sp,
                                     color = LightGray.copy(alpha = 0.6f)
                                 )

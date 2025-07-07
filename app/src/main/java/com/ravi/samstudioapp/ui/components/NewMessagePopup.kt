@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import com.ravi.samstudioapp.ui.categoryDefs
 import java.text.SimpleDateFormat
 import java.util.*
@@ -25,13 +24,13 @@ import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewMessagePopup(
-    transaction: ParsedSmsTransaction,
+    transaction: BankTransaction,
     onDismiss: () -> Unit,
     onSave: (BankTransaction) -> Unit
 ) {
     var amount by remember { mutableStateOf(transaction.amount.toString()) }
     var bankName by remember { mutableStateOf(transaction.bankName) }
-    var message by remember { mutableStateOf(transaction.rawMessage) }
+    var message by remember { mutableStateOf(transaction.tags) }
     var expanded by remember { mutableStateOf(false) }
     val categories = categoryDefs.map { it.name }
     var selectedCategory by remember { mutableStateOf(categories.find { it.equals("Other", true) } ?: categories.first()) }

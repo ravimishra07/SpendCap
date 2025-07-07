@@ -2,13 +2,13 @@ package com.ravi.samstudioapp.utils
 
 import android.content.Context
 import android.provider.Telephony
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
+import com.ravi.samstudioapp.domain.model.BankTransaction
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
 
-suspend fun readAndParseSms(context: Context): List<ParsedSmsTransaction> = withContext(Dispatchers.IO) {
-    val result = mutableListOf<ParsedSmsTransaction>()
+suspend fun readAndParseSms(context: Context): List<BankTransaction> = withContext(Dispatchers.IO) {
+    val result = mutableListOf<BankTransaction>()
     try {
         val cursor = context.contentResolver.query(
             Telephony.Sms.Inbox.CONTENT_URI,
@@ -44,11 +44,11 @@ suspend fun readAndParseSms(context: Context): List<ParsedSmsTransaction> = with
 
                     if (amount != null && amount < 500) {
                         result.add(
-                            ParsedSmsTransaction(
+                            BankTransaction(
+                                messageTime = dateMillis,
                                 amount = amount,
                                 bankName = matchedBank,
-                                messageTime = dateMillis,
-                                rawMessage = body
+                                tags = body
                             )
                         )
                     }

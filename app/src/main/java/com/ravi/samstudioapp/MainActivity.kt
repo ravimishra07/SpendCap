@@ -16,17 +16,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.ravi.samstudioapp.di.VmInjector
+import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.ui.AppPermissionHelper
 import com.ravi.samstudioapp.ui.LoadMainScreen
 import com.ravi.samstudioapp.utils.PermissionManager
-import com.ravi.samstudioapp.utils.SmsReceiver
 
 class MainActivity : ComponentActivity() {
     private lateinit var prefs: SharedPreferences
     private lateinit var viewModel: MainViewModel
     private lateinit var permissionHelper: AppPermissionHelper
-    private lateinit var smsReceiver: SmsReceiver
     private var lastAutoSyncTime: Long = 0
     private val AUTO_SYNC_COOLDOWN = 30000L // 30 seconds cooldown between auto-syncs
 
@@ -68,21 +67,25 @@ class MainActivity : ComponentActivity() {
             Log.d("MainActivity", "All permissions granted, starting app")
             startApp()
         }
+        
+        // Handle intent if app was launched from SMS receiver
+        handleIncomingIntent(intent)
     }
     
     private fun startApp() {
-        // Register SMS receiver
-        registerSmsReceiver()
-        
-        // Set up SMS listener
-        setupSmsListener()
-        
         // Initialize ViewModel
         viewModel = VmInjector.getViewModel(this@MainActivity, this)
         
         // Set content
         setContent {
             LoadMainScreen(viewModel)
+        }
+        
+        // Handle any pending SMS intent
+        pendingSmsIntent?.let { intent ->
+            Log.d("MainActivity", "🎯 Handling pending SMS intent in startApp")
+            handleIncomingIntent(intent)
+            pendingSmsIntent = null
         }
         
         // Auto-sync when app starts (with a small delay to ensure UI is loaded)
@@ -133,38 +136,7 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    private fun registerSmsReceiver() {
-        Log.d("MainActivity", "Registering SMS receiver programmatically")
-        smsReceiver = SmsReceiver()
-        
-        val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
-        filter.priority = 999
-        
-        try {
-            registerReceiver(smsReceiver, filter)
-            Log.d("MainActivity", "SMS receiver registered successfully")
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Failed to register SMS receiver", e)
-        }
-    }
-    
-    private fun setupSmsListener() {
-        Log.d("MainActivity", "Setting up SMS listener")
-        SmsReceiver.setOnNewSmsListener { messageBody, timestamp ->
-            Log.d("MainActivity", "New SMS received via BroadcastReceiver: $messageBody")
-            viewModel.handleNewSmsFromActivity(messageBody, timestamp)
-        }
-        Log.d("MainActivity", "SMS listener set successfully")
-    }
-    
-    private fun unregisterSmsReceiver() {
-        try {
-            unregisterReceiver(smsReceiver)
-            Log.d("MainActivity", "SMS receiver unregistered")
-        } catch (e: Exception) {
-            Log.e("MainActivity", "Failed to unregister SMS receiver", e)
-        }
-    }
+
     
     override fun onStart() {
         super.onStart()
@@ -181,10 +153,54 @@ class MainActivity : ComponentActivity() {
         super.onActivityResult(requestCode, resultCode, data)
         permissionHelper.handleActivityResult(requestCode, resultCode, data)
     }
+
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleIncomingIntent(intent)
+
+    }
+    
+    private fun handleIncomingIntent(intent: Intent?) {
+        if (intent?.getBooleanExtra("NEW_SMS_DETECTED", false) == true) {
+            Log.d("MainActivity", "🎯 Handling incoming SMS intent")
+            
+            val messageBody = intent.getStringExtra("MESSAGE_BODY") ?: return
+            val timestamp = intent.getLongExtra("MESSAGE_TIMESTAMP", 0L)
+            val bankTransaction = intent.getParcelableExtra<BankTransaction>("BANK_TRANSACTION")
+            
+            Log.d("MainActivity", "🎯 Message: ${messageBody.take(50)}...")
+            Log.d("MainActivity", "🎯 Timestamp: $timestamp")
+            Log.d("MainActivity", "🎯 Transaction: $bankTransaction")
+            
+            // Handle the new SMS in ViewModel
+            if (::viewModel.isInitialized) {
+                viewModel.handleNewSmsFromActivity(messageBody, timestamp)
+                Log.d("MainActivity", "🎯 ViewModel handleNewSmsFromActivity called")
+            } else {
+                Log.d("MainActivity", "🎯 ViewModel not initialized yet, will handle in startApp")
+                // Store the intent data to handle after ViewModel is initialized
+                pendingSmsIntent = intent
+            }
+        }
+    }
+    
+    private var pendingSmsIntent: Intent? = null
     
     override fun onDestroy() {
         super.onDestroy()
-        unregisterSmsReceiver()
+    }
+    
+    // Test method to verify SMS receiver is working
+    private fun testSmsReceiver() {
+        Log.d("MainActivity", "🧪 Testing SMS receiver...")
+        
+        // Create a test intent that simulates SMS received
+        val testIntent = Intent(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
+        
+        // Send broadcast to test if receiver is working
+        sendBroadcast(testIntent)
+        Log.d("MainActivity", "🧪 Test SMS broadcast sent")
     }
 }
 

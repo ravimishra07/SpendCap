@@ -14,7 +14,6 @@ import com.ravi.samstudioapp.ui.MainTabContent
 import com.ravi.samstudioapp.ui.categories
 import com.ravi.samstudioapp.ui.DateRangeMode
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
 import com.ravi.samstudioapp.ui.ExpenseSubType
 import java.util.Calendar
 

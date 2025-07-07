@@ -1,7 +1,7 @@
 package com.ravi.samstudioapp.utils
 
 import android.util.Log
-import com.ravi.samstudioapp.domain.model.ParsedSmsTransaction
+import com.ravi.samstudioapp.domain.model.BankTransaction
 
 object MessageParser {
     
@@ -23,7 +23,7 @@ object MessageParser {
     /**
      * Parse a new SMS message using the same logic as SmsUtils.kt
      */
-    fun parseNewMessage(messageBody: String, timestamp: Long): ParsedSmsTransaction? {
+    fun parseNewMessage(messageBody: String, timestamp: Long): BankTransaction? {
         try {
             val lowerBody = messageBody.lowercase()
             Log.d("MessageParser", "🔍 Parsing message: ${messageBody.take(100)}...")
@@ -46,11 +46,11 @@ object MessageParser {
                 if (amount != null && amount < 500) {
                     Log.d("MessageParser", "✅ Valid transaction: ₹$amount from $matchedBank")
                     
-                    return ParsedSmsTransaction(
+                    return BankTransaction(
+                        messageTime = timestamp,
                         amount = amount,
                         bankName = matchedBank,
-                        messageTime = timestamp,
-                        rawMessage = messageBody
+                        tags = messageBody
                     )
                 } else {
                     if (amount == null) {

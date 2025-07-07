@@ -28,10 +28,15 @@ class AppPermissionHelper(private val activity: Activity) {
         }
         
         fun hasSmsPermission(context: Context): Boolean {
-            return ContextCompat.checkSelfPermission(
+            val readSmsGranted = ContextCompat.checkSelfPermission(
                 context, 
                 Manifest.permission.READ_SMS
             ) == PackageManager.PERMISSION_GRANTED
+            val receiveSmsGranted = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECEIVE_SMS
+            ) == PackageManager.PERMISSION_GRANTED
+            return readSmsGranted && receiveSmsGranted
         }
         
         fun hasOverlayPermission(context: Context): Boolean {
@@ -86,7 +91,23 @@ class AppPermissionHelper(private val activity: Activity) {
     
     private fun requestSmsPermission() {
         smsPermissionLauncher?.let { launcher ->
-            launcher.launch(Manifest.permission.READ_SMS)
+            // Request both permissions if not granted
+            val permissionsToRequest = mutableListOf<String>()
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.READ_SMS)
+            }
+            if (ContextCompat.checkSelfPermission(activity, Manifest.permission.RECEIVE_SMS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.RECEIVE_SMS)
+            }
+            if (permissionsToRequest.isNotEmpty()) {
+                if (permissionsToRequest.size == 1) {
+                    launcher.launch(permissionsToRequest[0])
+                } else {
+                    // If only one permission can be requested at a time, request READ_SMS first, then RECEIVE_SMS
+                    launcher.launch(Manifest.permission.READ_SMS)
+                    // The next permission will be requested in handleSmsPermissionResult if needed
+                }
+            }
         } ?: run {
             Log.e("AppPermissionHelper", "SMS permission launcher not set")
             Toast.makeText(activity, "SMS permission launcher not configured", Toast.LENGTH_SHORT).show()
@@ -127,7 +148,13 @@ class AppPermissionHelper(private val activity: Activity) {
     fun handleSmsPermissionResult(isGranted: Boolean) {
         Log.d("AppPermissionHelper", "SMS permission result: $isGranted")
         if (isGranted) {
-            checkNextPermission()
+            // Check if both permissions are now granted
+            if (!hasSmsPermission(activity)) {
+                // If not, request the missing one
+                requestSmsPermission()
+            } else {
+                checkNextPermission()
+            }
         } else {
             Log.e("AppPermissionHelper", "SMS permission denied")
             Toast.makeText(activity, "SMS permission is required for transaction detection!", Toast.LENGTH_LONG).show()
