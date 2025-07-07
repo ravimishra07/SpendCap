@@ -1124,11 +1124,12 @@ fun TransactionList(
         ) {
             filterCategories.forEach { category ->
                 val isSelected = selectedCategory?.name == category.name || (selectedCategory == null && category.name == "All")
+                val catColor = if (category.name == "All") ComposeColor(0xFF0288D1) else (category as? CategoryDef)?.color ?: ComposeColor(0xFF0288D1)
                 NeumorphicBorderBox(
                     modifier = Modifier.padding(horizontal = 4.dp),
                     cornerRadius = 4.dp,
-                    backgroundColor = if (isSelected) ComposeColor(0xFF0288D1) else Black,
-                    borderColor = if (isSelected) ComposeColor(0xFF0288D1) else Color.White.copy(alpha = 0.10f),
+                    backgroundColor = if (isSelected) catColor.copy(alpha = 0.18f) else Black,
+                    borderColor = if (isSelected) catColor else Color.White.copy(alpha = 0.10f),
                     shadowElevation = if (isSelected) 4.dp else 2.dp,
                     contentPadding = 6.dp
                 ) {
@@ -1141,13 +1142,13 @@ fun TransactionList(
                         Icon(
                             category.icon, 
                             contentDescription = category.name, 
-                            tint = LightGray,
+                            tint = catColor,
                             modifier = Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
                             category.name, 
-                            color = LightGray,
+                            color = if (isSelected) catColor else LightGray,
                             fontSize = 12.sp
                         )
                     }
@@ -1191,14 +1192,21 @@ fun TransactionList(
                                     categoryDefs.find { it.name.equals(catName, ignoreCase = true) }
                                         ?: categoryDefs.last()
                                 }
-                                // Category icon and name (left)
-                                Icon(
-                                    catDef.icon,
-                                    contentDescription = catDef.name,
-                                    tint = LightGray,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
+                                // Category icon in colored background (left)
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(catDef.color, shape = RoundedCornerShape(12.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        catDef.icon,
+                                        contentDescription = catDef.name,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(14.dp))
                                 // Main info (center, expanded)
                                 Column(
                                     modifier = Modifier.weight(1f),
@@ -1209,14 +1217,14 @@ fun TransactionList(
                                             text = catDef.name,
                                             fontSize = 15.sp,
                                             fontWeight = FontWeight.SemiBold,
-                                            color = LightGray
+                                            color = Color.White
                                         )
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Text(
                                             text = "₹${txn.amount}",
                                             fontSize = 17.sp,
                                             fontWeight = FontWeight.Bold,
-                                            color = LightGray
+                                            color = catDef.color
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
