@@ -1130,7 +1130,7 @@ fun TransactionList(
                     backgroundColor = if (isSelected) ComposeColor(0xFF0288D1) else Black,
                     borderColor = if (isSelected) ComposeColor(0xFF0288D1) else Color.White.copy(alpha = 0.10f),
                     shadowElevation = if (isSelected) 4.dp else 2.dp,
-                    contentPadding = 8.dp
+                    contentPadding = 6.dp
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1138,9 +1138,18 @@ fun TransactionList(
                             selectedCategory = if (category.name == "All") null else category
                         }
                     ) {
-                        Icon(category.icon, contentDescription = category.name, tint = LightGray)
-                        Spacer(Modifier.width(6.dp))
-                        Text(category.name, color = LightGray)
+                        Icon(
+                            category.icon, 
+                            contentDescription = category.name, 
+                            tint = LightGray,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(Modifier.width(4.dp))
+                        Text(
+                            category.name, 
+                            color = LightGray,
+                            fontSize = 12.sp
+                        )
                     }
                 }
             }
@@ -1151,15 +1160,6 @@ fun TransactionList(
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 grouped.forEach { (date, txns) ->
-                    item {
-                        Text(
-                            date,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
-                            modifier = Modifier.padding(vertical = 4.dp, horizontal = 8.dp),
-                            color = ComposeColor.White
-                        )
-                    }
                     items(txns) { txn ->
                         val bankTxn = remember(txn, bankTransactions) {
                             bankTransactions.find { 
@@ -1197,12 +1197,19 @@ fun TransactionList(
                                 Row(modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)) {
                                     AssistChip(
                                         onClick = {},
-                                        label = { Text(catDef.name, color = LightGray) },
+                                        label = { 
+                                            Text(
+                                                catDef.name, 
+                                                color = LightGray,
+                                                fontSize = 11.sp
+                                            ) 
+                                        },
                                         leadingIcon = {
                                             Icon(
                                                 catDef.icon,
                                                 contentDescription = catDef.name,
-                                                tint = LightGray
+                                                tint = LightGray,
+                                                modifier = Modifier.size(14.dp)
                                             )
                                         },
                                         colors = AssistChipDefaults.assistChipColors(
@@ -1219,13 +1226,15 @@ fun TransactionList(
                                                 Text(
                                                     "Verified",
                                                     color = LightGray,
+                                                    fontSize = 11.sp
                                                 )
                                             },
                                             leadingIcon = {
                                                 Icon(
                                                     Icons.Filled.Check,
                                                     contentDescription = "Verified",
-                                                    tint = LightGray
+                                                    tint = LightGray,
+                                                    modifier = Modifier.size(14.dp)
                                                 )
                                             },
                                             colors = AssistChipDefaults.assistChipColors(
