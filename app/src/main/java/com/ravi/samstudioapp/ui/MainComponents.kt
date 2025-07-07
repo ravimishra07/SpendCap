@@ -600,11 +600,6 @@ fun SmsTransactionsByDateScreen(
                                 fontSize = 12.sp,
                                 color = ComposeColor.Gray
                             )
-                            Text(
-                                "Message: ${txn.tags}",
-                                fontSize = 12.sp,
-                                color = ComposeColor.Gray
-                            )
                         }
                     }
                 }
@@ -1191,11 +1186,6 @@ fun TransactionList(
                                 
                                 Text("Amount: ₹${txn.amount}", color = LightGray)
                                 Text("Bank: ${txn.bankName}", color = LightGray)
-                                Text(
-                                    "Message: ${txn.tags}",
-                                    fontSize = 12.sp,
-                                    color = LightGray.copy(alpha = 0.6f)
-                                )
                                 
                                 // Show category as a chip
                                 val catName = bankTxn?.category ?: "Other"
