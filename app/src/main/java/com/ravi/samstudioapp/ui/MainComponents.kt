@@ -81,16 +81,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
-import com.patrykandpatrick.vico.compose.axis.horizontal.bottomAxis
-import com.patrykandpatrick.vico.compose.axis.vertical.startAxis
-import com.patrykandpatrick.vico.compose.chart.Chart
-import com.patrykandpatrick.vico.compose.chart.column.columnChart
-import com.patrykandpatrick.vico.compose.chart.line.lineChart
-import com.patrykandpatrick.vico.core.entry.entryModelOf
-import com.patrykandpatrick.vico.core.entry.entryOf
-import com.patrykandpatrick.vico.core.component.shape.LineComponent
-import com.patrykandpatrick.vico.core.component.shape.Shapes
-import com.patrykandpatrick.vico.core.dimensions.MutableDimensions
+import com.ravi.samstudioapp.ui.MPChartSpendBarGraph
+import com.ravi.samstudioapp.ui.MPChartCategoryBarChart
 import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.presentation.insights.InsightsActivity
 import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
@@ -689,76 +681,12 @@ fun SpendBarGraph(
     barSpacing: Dp = 16.dp,
     graphHeight: Dp = 250.dp
 ) {
-    val zone = ZoneId.systemDefault()
-    val startDate = Instant.ofEpochMilli(dateRange.first).atZone(zone).toLocalDate()
-    val endDate = Instant.ofEpochMilli(dateRange.second).atZone(zone).toLocalDate()
-    val days = generateSequence(startDate) { it.plusDays(1) }
-        .takeWhile { !it.isAfter(endDate) }
-        .toList()
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM d")
-    val txnsByDay = transactions.groupBy {
-        Instant.ofEpochMilli(it.messageTime).atZone(zone).toLocalDate()
-    }
-    val amounts = days.map { day ->
-        txnsByDay[day]?.sumOf { it.amount } ?: 0.0
-    }
-
-    // Debug output
-    LaunchedEffect(amounts) {
-        println("SpendBarGraph days: $days")
-        println("SpendBarGraph amounts: $amounts")
-        println("SpendBarGraph transactions: $transactions")
-        println("SpendBarGraph dateRange: $dateRange")
-    }
-
-    // Create chart entries for Vico
-    val chartEntries = days.mapIndexed { index, day ->
-        entryOf(index.toFloat(), amounts[index].toFloat())
-    }
-
-    val chartEntryModel = entryModelOf(chartEntries)
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "Spending (${mode.days} days)",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        if (amounts.all { it == 0.0 }) {
-            Text(
-                "No spending data in this range",
-                color = Color.Gray,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-        } else {
-            Chart(
-                chart = columnChart(),
-                model = chartEntryModel,
-                startAxis = startAxis(),
-                bottomAxis = bottomAxis(),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(graphHeight)
-            )
-
-            // Date labels below chart
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                days.forEach { day ->
-                    Text(
-                        text = day.format(dateFormatter),
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
+    MPChartSpendBarGraph(
+        transactions = transactions,
+        dateRange = dateRange,
+        mode = mode,
+        modifier = modifier
+    )
 }
 
 //@Preview(showBackground = true)
@@ -1399,110 +1327,10 @@ fun CategoryBarChart(
     transactions: List<BankTransaction>,
     modifier: Modifier = Modifier
 ) {
-    // Function to normalize category names
-    fun normalizeCategory(category: String): String {
-        return when {
-            category.equals("ciggret", ignoreCase = true) -> "Cigarette"
-            category.equals("cigarette", ignoreCase = true) -> "Cigarette"
-            category.equals("food", ignoreCase = true) -> "Food"
-            category.equals("travel", ignoreCase = true) -> "Travel"
-            else -> "Other"
-        }
-    }
-    
-    val categoryData = transactions
-        .groupBy { normalizeCategory(it.category) }
-        .mapValues { (_, txns) -> txns.sumOf { it.amount } }
-        .toList()
-        .sortedByDescending { it.second }
-
-    // Debug logging
-    LaunchedEffect(categoryData) {
-        println("CategoryBarChart - All categories found: ${categoryData.map { it.first }}")
-        println("CategoryBarChart - Original transactions: ${transactions.map { "${it.category}: ₹${it.amount}" }}")
-        println("CategoryBarChart - Normalized transactions: ${transactions.map { "${normalizeCategory(it.category)}: ₹${it.amount}" }}")
-    }
-
-    if (categoryData.isEmpty()) {
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                "No category data available",
-                color = Color.Gray
-            )
-        }
-        return
-    }
-
-    val chartEntries = categoryData.mapIndexed { index, (_, amount) ->
-        entryOf(index.toFloat(), amount.toFloat())
-    }
-    val chartEntryModel = entryModelOf(chartEntries)
-    val categoryLabels = categoryData.map { it.first }
-    val barColors = listOf(
-        Color(0xFFEF6C00), // Food
-        Color(0xFF6D4C41), // Cigarette
-        Color(0xFF388E3C), // Travel
-        Color(0xFF0288D1), // Other
-        Color(0xFF1976D2), // Extra
-        Color(0xFF8E24AA)  // Extra
+    MPChartCategoryBarChart(
+        transactions = transactions,
+        modifier = modifier
     )
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        Text(
-            text = "Spending by Category",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-        Chart(
-            chart = columnChart(),
-            model = chartEntryModel,
-            startAxis = startAxis(),
-            bottomAxis = bottomAxis(
-                valueFormatter = { value, _ ->
-                    categoryLabels.getOrNull(value.toInt()) ?: ""
-                },
-                guideline = null
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height((60 * categoryData.size).dp.coerceAtLeast(180.dp))
-        )
-        // Category legend
-        Column(
-            modifier = Modifier.padding(top = 8.dp)
-        ) {
-            categoryData.forEachIndexed { idx, (category, amount) ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 2.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            Modifier
-                                .size(16.dp)
-                                .background(barColors[idx % barColors.size], shape = RoundedCornerShape(4.dp))
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = category,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Text(
-                        text = "₹${String.format("%.2f", amount)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable
