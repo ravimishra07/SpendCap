@@ -292,7 +292,7 @@ fun CustomToolbarWithDateRange(
         NeumorphicBorderBox(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = 8.dp,
-            backgroundColor = DarkGray,
+            backgroundColor = ComposeColor(0xFF383C47),
             borderColor = Color.White.copy(alpha = 0.10f),
             shadowElevation = 2.dp,
             contentPadding = 12.dp
@@ -1104,7 +1104,7 @@ fun TransactionList(
                 NeumorphicBorderBox(
                     modifier = Modifier.padding(horizontal = 4.dp),
                     cornerRadius = 4.dp,
-                    backgroundColor = if (isSelected) catColor.copy(alpha = 0.18f) else Black,
+                    backgroundColor = ComposeColor(0xFF383C47),
                     borderColor = if (isSelected) catColor else Color.White.copy(alpha = 0.10f),
                     shadowElevation = if (isSelected) 4.dp else 2.dp,
                     contentPadding = 6.dp
@@ -1130,6 +1130,31 @@ fun TransactionList(
                     }
                 }
             }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Total spend and cigarette count row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val totalSpend = filteredTxns.sumOf { it.amount }
+            val cigaretteCount = filteredTxns.count { it.category.equals("Cigarette", ignoreCase = true) }
+            Text(
+                text = "Total Spend: ₹${"%.2f".format(totalSpend)}",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Cigarette Count: $cigaretteCount",
+                color = ComposeColor(0xFF6D4C41),
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
         }
         Spacer(modifier = Modifier.height(4.dp))
 
