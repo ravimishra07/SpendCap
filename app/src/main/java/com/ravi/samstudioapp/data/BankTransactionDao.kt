@@ -9,7 +9,7 @@ import com.ravi.samstudioapp.domain.model.BankTransaction
 
 @Dao
 interface BankTransactionDao {
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(transaction: BankTransaction)
 
     @Query("SELECT * FROM bank_transactions ORDER BY messageTime DESC")
