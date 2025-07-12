@@ -23,4 +23,7 @@ class BankTransactionRepository(private val dao: BankTransactionDao) {
     suspend fun update(transaction: BankTransaction) = withContext(Dispatchers.IO) {
         dao.update(transaction)
     }
+    suspend fun markAsDeleted(messageTime: Long) = withContext(Dispatchers.IO) {
+        dao.markAsDeleted(messageTime)
+    }
 } 

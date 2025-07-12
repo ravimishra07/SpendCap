@@ -113,6 +113,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LocalHospital
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Subscriptions
+import androidx.compose.material.icons.filled.Delete
 
 
 // Add DateRangeMode enum at the top level
@@ -983,7 +984,8 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                                 bankTransactions = transactions,
                                 onEdit = { transaction ->
                                     viewModel.findAndOverwriteTransaction(transaction)
-                                }
+                                },
+                                viewModel = viewModel
                             )
                         }
                     }
@@ -1007,7 +1009,14 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     onDismiss = { showDialog = false },
                     onSave = {
                       //  viewModel.saveTransaction(it)
-                        viewModel.findAndOverwriteTransaction(it)
+                        val updatedTxn = editingTransaction?.copy(
+                            amount = it.amount,
+                            tags = it.tags,
+                            bankName = it.bankName,
+                            category = it.category,
+                            deleted = false // Always restore on edit
+                        )
+                        viewModel.findAndOverwriteTransaction(updatedTxn ?: it)
                         showDialog = false
                     }
                 )
@@ -1035,7 +1044,8 @@ fun LoadMainScreen(viewModel: MainViewModel) {
 fun TransactionList(
     smsTransactions: List<BankTransaction>,
     bankTransactions: List<BankTransaction>,
-    onEdit: (BankTransaction) -> Unit
+    onEdit: (BankTransaction) -> Unit,
+    viewModel: MainViewModel
 ) {
     val context = LocalContext.current
     var editingTxn by remember { mutableStateOf<BankTransaction?>(null) }
@@ -1067,12 +1077,14 @@ fun TransactionList(
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
     val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
     
+    // Filter out deleted transactions before grouping
     val filteredTxns = remember(smsTransactions, selectedCategory) {
+        val nonDeleted = smsTransactions.filter { !it.deleted }
         selectedCategory?.let { cat ->
-            if (cat.name == "All") smsTransactions else smsTransactions.filter { it.category.equals(cat.name, ignoreCase = true) }
-        } ?: smsTransactions
+            if (cat.name == "All") nonDeleted else nonDeleted.filter { it.category.equals(cat.name, ignoreCase = true) }
+        } ?: nonDeleted
     }
-    
+
     val grouped = remember(filteredTxns, dateFormat) {
         filteredTxns.groupBy { dateFormat.format(Date(it.messageTime)) }
     }
@@ -1125,7 +1137,7 @@ fun TransactionList(
         Box(modifier = Modifier.fillMaxSize()) {
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 grouped.forEach { (date, txns) ->
-                    items(txns) { txn ->
+                    items(txns, key = { it.messageTime }) { txn ->
                         val bankTxn = remember(txn, bankTransactions) {
                             bankTransactions.find { 
                                 it.amount == txn.amount && 
@@ -1134,6 +1146,7 @@ fun TransactionList(
                             }
                         }
                         
+                        // Remove SwipeToDismiss and just use NeumorphicBorderBox for each item
                         NeumorphicBorderBox(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1206,10 +1219,10 @@ fun TransactionList(
                                         )
                                     }
                                 }
-                                // Actions (right)
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                                // Replace the actions Column with a Row for edit and delete icons
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     bankTxn?.let { transaction ->
                                         IconButton(
@@ -1220,6 +1233,17 @@ fun TransactionList(
                                                 Icons.Filled.Edit,
                                                 contentDescription = "Edit Transaction",
                                                 tint = LightGray.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.markTransactionAsDeleted(txn.messageTime) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Delete,
+                                                contentDescription = "Delete Transaction",
+                                                tint = Color.Red,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -1338,7 +1362,8 @@ fun TransactionList(
                                     amount = editAmount.toDoubleOrNull() ?: txn.amount,
                                     tags = editType,
                                     bankName = editBankName,
-                                    category = editCategory
+                                    category = editCategory,
+                                    deleted = false // Always restore on edit
                                 )
                                 onEdit(updatedTxn)
                             }

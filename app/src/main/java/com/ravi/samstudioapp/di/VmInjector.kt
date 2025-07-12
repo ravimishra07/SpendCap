@@ -12,6 +12,7 @@ import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.GetExistingMessageTimesUseCase
+import com.ravi.samstudioapp.domain.usecase.MarkBankTransactionAsDeletedUseCase
 import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.presentation.main.MainViewModelFactory
 
@@ -31,10 +32,11 @@ object VmInjector {
             val update = UpdateBankTransactionUseCase(repo)
             val findExact = FindExactBankTransactionUseCase(repo)
             val getExistingMessageTimes = GetExistingMessageTimesUseCase(repo)
+            val markAsDeleted = MarkBankTransactionAsDeletedUseCase(repo)
 
             _viewModel = ViewModelProvider(
                 owner,
-                MainViewModelFactory(getAll, getByRange, insert, update, findExact, getExistingMessageTimes)
+                MainViewModelFactory(getAll, getByRange, insert, update, findExact, getExistingMessageTimes, markAsDeleted)
             )[MainViewModel::class.java]
         }
         return _viewModel!!
