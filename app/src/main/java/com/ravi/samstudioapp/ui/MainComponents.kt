@@ -1152,7 +1152,7 @@ fun TransactionList(
                                 .fillMaxWidth()
                                 .padding(vertical = 4.dp, horizontal = 8.dp),
                             cornerRadius = 12.dp,
-                            backgroundColor = DarkGray,
+                            backgroundColor = ComposeColor(0xFF383C47),
                             borderColor = Color.White.copy(alpha = 0.10f),
                             shadowElevation = 3.dp,
                             contentPadding = 16.dp
