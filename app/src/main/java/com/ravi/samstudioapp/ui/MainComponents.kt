@@ -123,7 +123,12 @@ private val LightGray = ComposeColor(0xFFE0E0E0)
 val categories = listOf(
     "Food" to (Icons.Filled.Fastfood to ComposeColor(0xFFEF6C00)),
     "Cigarette" to (Icons.Filled.LocalCafe to ComposeColor(0xFF6D4C41)),
+    "Family" to (Icons.Filled.People to ComposeColor(0xFF1976D2)),
+    "EMI" to (Icons.Filled.CreditCard to ComposeColor(0xFF8D6E63)),
+    "Rent" to (Icons.Filled.Home to ComposeColor(0xFF43A047)),
     "Travel" to (Icons.Filled.DirectionsCar to ComposeColor(0xFF388E3C)),
+    "Subscription" to (Icons.Filled.Subscriptions to ComposeColor(0xFF7B1FA2)),
+    "Medicine" to (Icons.Filled.LocalHospital to ComposeColor(0xFFD32F2F)),
     "Other" to (Icons.Filled.LocalDrink to ComposeColor(0xFF0288D1))
 )
 
@@ -143,25 +148,51 @@ val categoryDefs = listOf(
         Icons.Filled.Fastfood,
         ComposeColor(0xFFEF6C00)
     ) { txn ->
-        txn.tags.contains("food", ignoreCase = true) || txn.bankName.contains(
-            "food",
-            ignoreCase = true
-        )
+        txn.tags.contains("food", ignoreCase = true) || txn.bankName.contains("food", ignoreCase = true)
     },
     CategoryDef(
         "Cigarette",
         Icons.Filled.LocalCafe,
         ComposeColor(0xFF6D4C41)
-    ) { txn -> 
-        txn.tags.contains("cigarette", ignoreCase = true) || 
-        txn.tags.contains("ciggret", ignoreCase = true) ||
-        txn.category.equals("ciggret", ignoreCase = true)
+    ) { txn ->
+        txn.tags.contains("cigarette", ignoreCase = true) || txn.tags.contains("ciggret", ignoreCase = true) || txn.category.equals("ciggret", ignoreCase = true)
+    },
+    CategoryDef(
+        "Family",
+        Icons.Filled.People,
+        ComposeColor(0xFF1976D2)
+    ) { txn ->
+        txn.tags.contains("family", ignoreCase = true) || txn.category.equals("family", ignoreCase = true)
+    },
+    CategoryDef(
+        "EMI",
+        Icons.Filled.CreditCard,
+        ComposeColor(0xFF8D6E63)
+    ) { txn ->
+        txn.tags.contains("emi", ignoreCase = true) || txn.category.equals("emi", ignoreCase = true)
+    },
+    CategoryDef(
+        "Rent",
+        Icons.Filled.Home,
+        ComposeColor(0xFF43A047)
+    ) { txn ->
+        txn.tags.contains("rent", ignoreCase = true) || txn.category.equals("rent", ignoreCase = true)
     },
     CategoryDef(
         "Travel",
         Icons.Filled.DirectionsCar,
         ComposeColor(0xFF388E3C)
-    ) { txn -> txn.tags.contains("travel", ignoreCase = true) },
+    ) { txn -> txn.tags.contains("travel", ignoreCase = true) || txn.category.equals("travel", ignoreCase = true) },
+    CategoryDef(
+        "Subscription",
+        Icons.Filled.Subscriptions,
+        ComposeColor(0xFF7B1FA2)
+    ) { txn -> txn.tags.contains("subscription", ignoreCase = true) || txn.category.equals("subscription", ignoreCase = true) },
+    CategoryDef(
+        "Medicine",
+        Icons.Filled.LocalHospital,
+        ComposeColor(0xFFD32F2F)
+    ) { txn -> txn.tags.contains("medicine", ignoreCase = true) || txn.category.equals("medicine", ignoreCase = true) },
     CategoryDef(
         "Other",
         Icons.Filled.LocalDrink,

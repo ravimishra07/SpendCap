@@ -25,7 +25,7 @@ fun EditTransactionDialog(
     var bankName by remember { mutableStateOf(transaction?.bankName ?: "") }
     var category by remember { mutableStateOf(transaction?.category ?: "Other") }
     var verified by remember { mutableStateOf(transaction?.verified ?: false) }
-    val categories = listOf("Food", "Cigarette", "Travel", "Other")
+    val categories = listOf("Food", "Cigarette", "Family", "EMI", "Rent", "Travel", "Subscription", "Medicine", "Other")
     var showCategoryDropdown by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss,
