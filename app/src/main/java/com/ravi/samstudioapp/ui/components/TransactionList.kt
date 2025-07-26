@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.presentation.main.MainViewModel
+import com.ravi.samstudioapp.ui.components.GlassTransactionCard
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -70,7 +71,7 @@ fun TransactionList(
                             }
                         }
                         
-                        TransactionItem(
+                        GlassTransactionCard(
                             txn = txn,
                             bankTxn = bankTxn,
                             dateTimeFormat = dateTimeFormat,

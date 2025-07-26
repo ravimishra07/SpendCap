@@ -90,6 +90,7 @@ import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
 import com.ravi.samstudioapp.ui.components.NewMessagePopup
 import com.ravi.samstudioapp.ui.components.TransactionList
+import com.ravi.samstudioapp.ui.components.GlassTransactionCard
 import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -150,7 +151,7 @@ val categoryDefs = listOf(
     CategoryDef(
         "Food",
         Icons.Filled.Fastfood,
-        ComposeColor(0xFFEF6C00)
+        ComposeColor(0xFFA07050) // Warm brown/orange color to match screenshot
     ) { txn ->
         txn.tags.contains("food", ignoreCase = true) || txn.bankName.contains("food", ignoreCase = true)
     },
