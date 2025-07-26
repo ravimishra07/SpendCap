@@ -108,6 +108,7 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.material.icons.filled.Delete
 
 
 // Add DateRangeMode enum at the top level
@@ -980,7 +981,8 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                                 bankTransactions = transactions,
                                 onEdit = { transaction ->
                                     viewModel.findAndOverwriteTransaction(transaction)
-                                }
+                                },
+                                viewModel = viewModel
                             )
                         }
                     }
@@ -1004,7 +1006,14 @@ fun LoadMainScreen(viewModel: MainViewModel) {
                     onDismiss = { showDialog = false },
                     onSave = {
                       //  viewModel.saveTransaction(it)
-                        viewModel.findAndOverwriteTransaction(it)
+                        val updatedTxn = editingTransaction?.copy(
+                            amount = it.amount,
+                            tags = it.tags,
+                            bankName = it.bankName,
+                            category = it.category,
+                            deleted = false // Always restore on edit
+                        )
+                        viewModel.findAndOverwriteTransaction(updatedTxn ?: it)
                         showDialog = false
                     }
                 )
@@ -1032,7 +1041,8 @@ fun LoadMainScreen(viewModel: MainViewModel) {
 fun TransactionList(
     smsTransactions: List<BankTransaction>,
     bankTransactions: List<BankTransaction>,
-    onEdit: (BankTransaction) -> Unit
+    onEdit: (BankTransaction) -> Unit,
+    viewModel: MainViewModel
 ) {
     val context = LocalContext.current
     var editingTxn by remember { mutableStateOf<BankTransaction?>(null) }
@@ -1065,9 +1075,10 @@ fun TransactionList(
     val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
     
     val filteredTxns = remember(smsTransactions, selectedCategory) {
+        val nonDeleted = smsTransactions.filter { !it.deleted }
         selectedCategory?.let { cat ->
-            if (cat.name == "All") smsTransactions else smsTransactions.filter { it.category.equals(cat.name, ignoreCase = true) }
-        } ?: smsTransactions
+            if (cat.name == "All") nonDeleted else nonDeleted.filter { it.category.equals(cat.name, ignoreCase = true) }
+        } ?: nonDeleted
     }
     
     val grouped = remember(filteredTxns, dateFormat) {
@@ -1115,6 +1126,31 @@ fun TransactionList(
                     }
                 }
             }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // Total spend and cigarette count row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 6.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            val totalSpend = filteredTxns.sumOf { it.amount }
+            val cigaretteCount = filteredTxns.count { it.category.equals("Cigarette", ignoreCase = true) }
+            Text(
+                text = "Total Spend: ₹${"%.2f".format(totalSpend)}",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
+            Text(
+                text = "Cigarette Count: $cigaretteCount",
+                color = ComposeColor(0xFF6D4C41),
+                fontWeight = FontWeight.Bold,
+                fontSize = 15.sp
+            )
         }
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -1203,10 +1239,10 @@ fun TransactionList(
                                         )
                                     }
                                 }
-                                // Actions (right)
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                                // Replace the actions Column with a Row for edit and delete icons
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     bankTxn?.let { transaction ->
                                         IconButton(
@@ -1217,6 +1253,17 @@ fun TransactionList(
                                                 Icons.Filled.Edit,
                                                 contentDescription = "Edit Transaction",
                                                 tint = LightGray.copy(alpha = 0.8f),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = { viewModel.markTransactionAsDeleted(txn.messageTime) },
+                                            modifier = Modifier.size(28.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Filled.Delete,
+                                                contentDescription = "Delete Transaction",
+                                                tint = Color.Red,
                                                 modifier = Modifier.size(18.dp)
                                             )
                                         }
@@ -1335,7 +1382,8 @@ fun TransactionList(
                                     amount = editAmount.toDoubleOrNull() ?: txn.amount,
                                     tags = editType,
                                     bankName = editBankName,
-                                    category = editCategory
+                                    category = editCategory,
+                                    deleted = false // Always restore on edit
                                 )
                                 onEdit(updatedTxn)
                             }

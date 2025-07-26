@@ -17,7 +17,8 @@ data class BankTransaction(
     val tags: String = "",
     val count: Int? = null,
     val category: String = "Other",
-    val verified: Boolean = false
+    val verified: Boolean = false,
+    val deleted: Boolean = false
 ) : Parcelable {
     constructor(parcel: Parcel) : this(
         parcel.readLong(),
@@ -26,6 +27,7 @@ data class BankTransaction(
         parcel.readString() ?: "",
         parcel.readValue(Int::class.java.classLoader) as? Int,
         parcel.readString() ?: "Other",
+        parcel.readByte() != 0.toByte(),
         parcel.readByte() != 0.toByte()
     )
 
@@ -37,6 +39,7 @@ data class BankTransaction(
         parcel.writeValue(count)
         parcel.writeString(category)
         parcel.writeByte(if (verified) 1 else 0)
+        parcel.writeByte(if (deleted) 1 else 0)
     }
 
     override fun describeContents(): Int {

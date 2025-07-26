@@ -88,7 +88,8 @@ fun TabbedMainScreen(
                     bankTransactions = transactions,
                     onEdit = { transaction ->
                         viewModel.findAndOverwriteTransaction(transaction)
-                    }
+                    },
+                    viewModel = viewModel
                 )
             }
             1 -> {

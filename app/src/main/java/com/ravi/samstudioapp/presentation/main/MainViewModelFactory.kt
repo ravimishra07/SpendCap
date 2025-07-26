@@ -9,6 +9,7 @@ import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.GetExistingMessageTimesUseCase
 import com.ravi.samstudioapp.domain.usecase.InsertIfNotVerifiedUseCase
+import com.ravi.samstudioapp.domain.usecase.MarkBankTransactionAsDeletedUseCase
 
 class MainViewModelFactory(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
@@ -17,7 +18,8 @@ class MainViewModelFactory(
     private val updateTransaction: UpdateBankTransactionUseCase,
     private val findExactTransaction: FindExactBankTransactionUseCase,
     private val getExistingMessageTimes: GetExistingMessageTimesUseCase,
-    private val insertIfNotVerifiedUseCase: InsertIfNotVerifiedUseCase
+    private val insertIfNotVerifiedUseCase: InsertIfNotVerifiedUseCase,
+    private val markAsDeletedUseCase: MarkBankTransactionAsDeletedUseCase
 ) : ViewModelProvider.Factory {
     
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
@@ -30,7 +32,8 @@ class MainViewModelFactory(
                 updateTransaction,
                 findExactTransaction,
                 getExistingMessageTimes,
-                insertIfNotVerifiedUseCase
+                insertIfNotVerifiedUseCase,
+                markAsDeletedUseCase
             ) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")

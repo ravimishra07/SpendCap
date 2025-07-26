@@ -25,6 +25,7 @@ import java.util.Calendar
 import android.util.Log
 import android.os.Build
 import com.ravi.samstudioapp.domain.usecase.InsertIfNotVerifiedUseCase
+import com.ravi.samstudioapp.domain.usecase.MarkBankTransactionAsDeletedUseCase
 
 class MainViewModel(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
@@ -33,7 +34,8 @@ class MainViewModel(
     private val updateTransactionUseCase: UpdateBankTransactionUseCase,
     private val findExactTransaction: FindExactBankTransactionUseCase,
     private val getExistingMessageTimes: GetExistingMessageTimesUseCase,
-    private val insertIfNotVerifiedUseCase: InsertIfNotVerifiedUseCase
+    private val insertIfNotVerifiedUseCase: InsertIfNotVerifiedUseCase,
+    private val markAsDeletedUseCase: MarkBankTransactionAsDeletedUseCase
 ) : ViewModel() {
     private val _transactions = MutableStateFlow<List<BankTransaction>>(emptyList())
     val transactions: StateFlow<List<BankTransaction>> = _transactions
@@ -246,13 +248,6 @@ class MainViewModel(
                 val uniqueTxns = newTxns.filter { txn ->
                     !existingMessageTimes.contains(txn.messageTime)
                 }
-
-//                // Batch insert if possible, else insert one by one
-//                uniqueTxns.forEach { txn ->
-//                    withContext(Dispatchers.IO) { insertTransaction(txn) }
-//                }
-
-                // Replace insert with logic that respects verified entries
                 uniqueTxns.forEach { txn ->
                     withContext(Dispatchers.IO) { insertIfNotVerifiedUseCase(txn) }
                 }
@@ -281,7 +276,9 @@ class MainViewModel(
     fun loadSmsTransactions() {
         viewModelScope.launch {
             val allTransactions = getAllTransactions()
-            _smsTransactions.value = allTransactions.map {
+            allTransactions.filter { it.deleted }.forEach { Log.d("MainViewModel", "DELETED Txn: ${it.messageTime}, deleted: ${it.deleted}") }
+            val nonDeleted = allTransactions.filter { !it.deleted }
+            _smsTransactions.value = nonDeleted.map {
                 BankTransaction(
                     messageTime = it.messageTime,
                     amount = it.amount,
@@ -303,10 +300,10 @@ class MainViewModel(
 
             val allTransactions = getAllTransactions()
                 .sortedByDescending { it.messageTime } // Newest first
-
+            allTransactions.filter { it.deleted }.forEach { Log.d("MainViewModel", "DELETED Txn: ${it.messageTime}, deleted: ${it.deleted}") }
             val recentTransactions = allTransactions.takeWhile { it.messageTime >= cutoff }
-
-            _smsTransactions.value = recentTransactions.map {
+            val nonDeleted = recentTransactions.filter { !it.deleted }
+            _smsTransactions.value = nonDeleted.map {
                 BankTransaction(
                     messageTime = it.messageTime,
                     amount = it.amount,
@@ -325,7 +322,7 @@ class MainViewModel(
     private fun updateFilteredSmsTransactions() {
         val currentRange = _dateRange.value
         val filtered = _smsTransactions.value.filter {
-            it.messageTime in currentRange.first..currentRange.second
+            it.messageTime in currentRange.first..currentRange.second && !it.deleted
         }
         _filteredSmsTransactions.value = filtered
     }
@@ -523,4 +520,17 @@ class MainViewModel(
         _newMessageDetected.value = testTransaction
         Log.d("MainViewModel", "🧪 Test popup triggered!")
     }
-} 
+
+    fun markTransactionAsDeleted(messageTime: Long) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    markAsDeletedUseCase(messageTime)
+                }
+                loadSmsTransactions() // Instantly refresh the list after delete
+            } catch (e: Exception) {
+                Log.e("MainViewModel", "Error marking transaction as deleted", e)
+            }
+        }
+    }
+}

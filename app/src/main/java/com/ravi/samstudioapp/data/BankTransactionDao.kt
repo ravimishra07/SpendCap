@@ -12,10 +12,10 @@ interface BankTransactionDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(transaction: BankTransaction)
 
-    @Query("SELECT * FROM bank_transactions ORDER BY messageTime DESC")
+    @Query("SELECT * FROM bank_transactions WHERE deleted = 0 ORDER BY messageTime DESC")
     suspend fun getAll(): List<BankTransaction>
 
-    @Query("SELECT * FROM bank_transactions WHERE messageTime BETWEEN :start AND :end ORDER BY messageTime DESC")
+    @Query("SELECT * FROM bank_transactions WHERE messageTime BETWEEN :start AND :end AND deleted = 0 ORDER BY messageTime DESC")
     suspend fun getByDateRange(start: Long, end: Long): List<BankTransaction>
 
     @Query("SELECT * FROM bank_transactions WHERE messageTime = :messageTime LIMIT 1")
@@ -29,4 +29,7 @@ interface BankTransactionDao {
 
     @Query("SELECT * FROM bank_transactions WHERE amount = :amount AND bankName = :bankName AND verified = 1 LIMIT 1")
     suspend fun findVerifiedTransaction(amount: Double, bankName: String): BankTransaction?
-} 
+
+    @Query("UPDATE bank_transactions SET deleted = 1 WHERE messageTime = :messageTime")
+    suspend fun markAsDeleted(messageTime: Long)
+}

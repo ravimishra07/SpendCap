@@ -42,4 +42,7 @@ class BankTransactionRepository(private val dao: BankTransactionDao) {
             // Skipping insert since a verified version exists
         }
     }
+    suspend fun markAsDeleted(messageTime: Long) = withContext(Dispatchers.IO) {
+        dao.markAsDeleted(messageTime)
+    }
 }
