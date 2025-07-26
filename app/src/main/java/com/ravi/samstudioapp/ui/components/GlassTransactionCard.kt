@@ -62,7 +62,7 @@ fun GlassTransactionCard(
                 color = Color(0xFF444950),
                 shape = RoundedCornerShape(16.dp)
             )
-            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -104,7 +104,7 @@ fun GlassTransactionCard(
                         )
                         Text(
                             text = txn.bankName,
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             color = Color(0xFFBABED2)
                         )
                     }
@@ -164,36 +164,12 @@ fun GlassTransactionCard(
                     color = Color.White
                 )
 
-                // Action Buttons
+                // Action Icons (not buttons)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Edit Button
-                    IconButton(
-                        onClick = { bankTxn?.let { onEdit(it) } },
-                        modifier = Modifier
-                            .size(24.dp)
-                            .clip(CircleShape)
-                            .background(
-                                color = Color(0xFF444950),
-                                shape = CircleShape
-                            )
-                            .border(
-                                width = 1.dp,
-                                color = Color(0xFF5A5F66),
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Edit,
-                            contentDescription = "Edit",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                    // Delete Button
-                    IconButton(
-                        onClick = onDelete,
+                    // Edit Icon
+                    Box(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
@@ -205,13 +181,37 @@ fun GlassTransactionCard(
                                 width = 1.dp,
                                 color = Color(0xFF5A5F66),
                                 shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Edit,
+                            contentDescription = "Edit",
+                            tint = Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                    // Delete Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                color = Color(0xFF444950),
+                                shape = CircleShape
                             )
+                            .border(
+                                width = 1.dp,
+                                color = Color(0xFF5A5F66),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Delete,
                             contentDescription = "Delete",
                             tint = Color.White,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(14.dp)
                         )
                     }
                 }
