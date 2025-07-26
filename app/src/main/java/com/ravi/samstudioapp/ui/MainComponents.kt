@@ -123,7 +123,13 @@ private val LightGray = ComposeColor(0xFFE0E0E0)
 val categories = listOf(
     "Food" to (Icons.Filled.Fastfood to ComposeColor(0xFFEF6C00)),
     "Cigarette" to (Icons.Filled.LocalCafe to ComposeColor(0xFF6D4C41)),
-    "Travel" to (Icons.Filled.DirectionsCar to ComposeColor(0xFF388E3C)),
+    "Transport" to (Icons.Filled.DirectionsCar to ComposeColor(0xFF388E3C)),
+    "Impulse" to (Icons.Filled.LocalDrink to ComposeColor(0xFF0288D1)),
+    "Family" to (Icons.Filled.Message to ComposeColor(0xFF7B1FA2)),
+    "Work" to (Icons.Filled.Analytics to ComposeColor(0xFF1976D2)),
+    "Home" to (Icons.Filled.List to ComposeColor(0xFF6A1B9A)),
+    "Health" to (Icons.Filled.Check to ComposeColor(0xFF2E7D32)),
+    "Subscriptions" to (Icons.Filled.Refresh to ComposeColor(0xFF0097A7)),
     "Other" to (Icons.Filled.LocalDrink to ComposeColor(0xFF0288D1))
 )
 
@@ -137,38 +143,65 @@ data class CategoryDef(
     val matcher: (BankTransaction) -> Boolean
 )
 
+
 val categoryDefs = listOf(
     CategoryDef(
         "Food",
         Icons.Filled.Fastfood,
         ComposeColor(0xFFEF6C00)
     ) { txn ->
-        txn.tags.contains("food", ignoreCase = true) || txn.bankName.contains(
-            "food",
-            ignoreCase = true
-        )
+        txn.tags.contains("food", ignoreCase = true) || txn.bankName.contains("food", ignoreCase = true)
     },
     CategoryDef(
         "Cigarette",
         Icons.Filled.LocalCafe,
         ComposeColor(0xFF6D4C41)
-    ) { txn -> 
-        txn.tags.contains("cigarette", ignoreCase = true) || 
-        txn.tags.contains("ciggret", ignoreCase = true) ||
-        txn.category.equals("ciggret", ignoreCase = true)
+    ) { txn ->
+        txn.tags.contains("cigarette", ignoreCase = true) ||
+                txn.tags.contains("ciggret", ignoreCase = true) ||
+                txn.category.equals("ciggret", ignoreCase = true)
     },
     CategoryDef(
-        "Travel",
+        "Transport",
         Icons.Filled.DirectionsCar,
         ComposeColor(0xFF388E3C)
     ) { txn -> txn.tags.contains("travel", ignoreCase = true) },
+    CategoryDef(
+        "Impulse",
+        Icons.Filled.LocalDrink,
+        ComposeColor(0xFF0288D1)
+    ) { txn -> txn.tags.contains("impulse", ignoreCase = true) },
+    CategoryDef(
+        "Family",
+        Icons.Filled.Message,
+        ComposeColor(0xFF7B1FA2)
+    ) { txn -> txn.tags.contains("family", ignoreCase = true) },
+    CategoryDef(
+        "Work",
+        Icons.Filled.Analytics,
+        ComposeColor(0xFF1976D2)
+    ) { txn -> txn.tags.contains("work", ignoreCase = true) },
+    CategoryDef(
+        "Home",
+        Icons.Filled.List,
+        ComposeColor(0xFF6A1B9A)
+    ) { txn -> txn.tags.contains("home", ignoreCase = true) },
+    CategoryDef(
+        "Health",
+        Icons.Filled.Check,
+        ComposeColor(0xFF2E7D32)
+    ) { txn -> txn.tags.contains("health", ignoreCase = true) },
+    CategoryDef(
+        "Subscriptions",
+        Icons.Filled.Refresh,
+        ComposeColor(0xFF0097A7)
+    ) { txn -> txn.tags.contains("subscription", ignoreCase = true) },
     CategoryDef(
         "Other",
         Icons.Filled.LocalDrink,
         ComposeColor(0xFF0288D1)
     ) { txn -> true } // fallback
 )
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NeumorphicBorderBox(

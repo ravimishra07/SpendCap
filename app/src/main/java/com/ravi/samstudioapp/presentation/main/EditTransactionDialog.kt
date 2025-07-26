@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -25,8 +26,14 @@ fun EditTransactionDialog(
     var bankName by remember { mutableStateOf(transaction?.bankName ?: "") }
     var category by remember { mutableStateOf(transaction?.category ?: "Other") }
     var verified by remember { mutableStateOf(transaction?.verified ?: false) }
-    val categories = listOf("Food", "Cigarette", "Travel", "Other")
+
+    val categories = listOf(
+        "Food", "Cigarette", "Transport", "Impulse", "Family",
+        "Work", "Home", "Health", "Subscriptions", "Other"
+    )
+
     var showCategoryDropdown by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (transaction == null) "Add Transaction" else "Edit Transaction") },
@@ -84,7 +91,7 @@ fun EditTransactionDialog(
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    androidx.compose.material3.Checkbox(
+                    Checkbox(
                         checked = verified,
                         onCheckedChange = { verified = it }
                     )
@@ -111,4 +118,4 @@ fun EditTransactionDialog(
             TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
-} 
+}

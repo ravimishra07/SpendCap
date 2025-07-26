@@ -26,4 +26,7 @@ interface BankTransactionDao {
 
     @Update
     suspend fun update(transaction: BankTransaction)
+
+    @Query("SELECT * FROM bank_transactions WHERE amount = :amount AND bankName = :bankName AND verified = 1 LIMIT 1")
+    suspend fun findVerifiedTransaction(amount: Double, bankName: String): BankTransaction?
 } 

@@ -24,6 +24,7 @@ import androidx.compose.runtime.LaunchedEffect
 import java.util.Calendar
 import android.util.Log
 import android.os.Build
+import com.ravi.samstudioapp.domain.usecase.InsertIfNotVerifiedUseCase
 
 class MainViewModel(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
@@ -31,7 +32,8 @@ class MainViewModel(
     private val insertTransaction: InsertBankTransactionUseCase,
     private val updateTransactionUseCase: UpdateBankTransactionUseCase,
     private val findExactTransaction: FindExactBankTransactionUseCase,
-    private val getExistingMessageTimes: GetExistingMessageTimesUseCase
+    private val getExistingMessageTimes: GetExistingMessageTimesUseCase,
+    private val insertIfNotVerifiedUseCase: InsertIfNotVerifiedUseCase
 ) : ViewModel() {
     private val _transactions = MutableStateFlow<List<BankTransaction>>(emptyList())
     val transactions: StateFlow<List<BankTransaction>> = _transactions
@@ -245,11 +247,15 @@ class MainViewModel(
                     !existingMessageTimes.contains(txn.messageTime)
                 }
 
-                // Batch insert if possible, else insert one by one
-                uniqueTxns.forEach { txn ->
-                    withContext(Dispatchers.IO) { insertTransaction(txn) }
-                }
+//                // Batch insert if possible, else insert one by one
+//                uniqueTxns.forEach { txn ->
+//                    withContext(Dispatchers.IO) { insertTransaction(txn) }
+//                }
 
+                // Replace insert with logic that respects verified entries
+                uniqueTxns.forEach { txn ->
+                    withContext(Dispatchers.IO) { insertIfNotVerifiedUseCase(txn) }
+                }
                 loadAllTransactions()
                 loadSmsTransactions()
                 updateFilteredSmsTransactions()
