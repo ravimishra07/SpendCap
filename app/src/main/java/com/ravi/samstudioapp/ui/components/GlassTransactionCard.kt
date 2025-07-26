@@ -62,7 +62,7 @@ fun GlassTransactionCard(
                 color = Color(0xFF444950),
                 shape = RoundedCornerShape(16.dp)
             )
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -98,8 +98,8 @@ fun GlassTransactionCard(
                     Column {
                         Text(
                             text = catDef.name,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
                             color = Color.White
                         )
                         Text(
@@ -123,7 +123,7 @@ fun GlassTransactionCard(
                     )
                     Text(
                         text = dateTime,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         color = Color(0xFFBABED2)
                     )
                     Text(
@@ -145,7 +145,7 @@ fun GlassTransactionCard(
                         Text(
                             text = txn.bankName,
                             fontSize = 12.sp,
-                            color = Color(0xFFB0B0B0)
+                            color = Color(0xFFBABED2)
                         )
                     }
                 }
@@ -160,7 +160,7 @@ fun GlassTransactionCard(
                 Text(
                     text = "₹${txn.amount}",
                     fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     color = Color.White
                 )
 
