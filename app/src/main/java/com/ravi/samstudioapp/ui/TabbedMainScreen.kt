@@ -13,6 +13,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.presentation.main.MainViewModel
+import com.ravi.samstudioapp.ui.components.TransactionList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
