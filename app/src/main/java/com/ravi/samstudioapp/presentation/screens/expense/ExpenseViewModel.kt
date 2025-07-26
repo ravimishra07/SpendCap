@@ -1,33 +1,27 @@
-package com.ravi.samstudioapp.presentation.main
+package com.ravi.samstudioapp.presentation.screens.expense
 
 import android.content.Context
-import android.content.Intent
-import android.content.SharedPreferences
-import androidx.lifecycle.ViewModel
+import android.util.Log
 import androidx.lifecycle.viewModelScope
 import com.ravi.samstudioapp.domain.model.BankTransaction
+import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.GetAllBankTransactionsUseCase
 import com.ravi.samstudioapp.domain.usecase.GetBankTransactionsByDateRangeUseCase
-import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
-import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
-import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.GetExistingMessageTimesUseCase
-import com.ravi.samstudioapp.utils.readAndParseSms
+import com.ravi.samstudioapp.domain.usecase.InsertBankTransactionUseCase
+import com.ravi.samstudioapp.domain.usecase.InsertIfNotVerifiedUseCase
+import com.ravi.samstudioapp.domain.usecase.MarkBankTransactionAsDeletedUseCase
+import com.ravi.samstudioapp.domain.usecase.UpdateBankTransactionUseCase
+import com.ravi.samstudioapp.presentation.main.BaseViewModel
 import com.ravi.samstudioapp.utils.MessageParser
-import com.ravi.samstudioapp.ui.DateRangeMode
+import com.ravi.samstudioapp.utils.readAndParseSms
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.runtime.LaunchedEffect
-import java.util.Calendar
-import android.util.Log
-import android.os.Build
-import com.ravi.samstudioapp.domain.usecase.InsertIfNotVerifiedUseCase
-import com.ravi.samstudioapp.domain.usecase.MarkBankTransactionAsDeletedUseCase
 
-class MainViewModel(
+class ExpenseViewModel(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
     private val getByDateRange: GetBankTransactionsByDateRangeUseCase,
     private val insertTransaction: InsertBankTransactionUseCase,
@@ -36,16 +30,9 @@ class MainViewModel(
     private val getExistingMessageTimes: GetExistingMessageTimesUseCase,
     private val insertIfNotVerifiedUseCase: InsertIfNotVerifiedUseCase,
     private val markAsDeletedUseCase: MarkBankTransactionAsDeletedUseCase
-) : ViewModel() {
+) : BaseViewModel() {
     private val _transactions = MutableStateFlow<List<BankTransaction>>(emptyList())
     val transactions: StateFlow<List<BankTransaction>> = _transactions
-
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
-
-    // Date range state
-    private val _dateRange = MutableStateFlow(getDefaultMonthRange())
-    val dateRange: StateFlow<Pair<Long, Long>> = _dateRange
 
     // New state flows for LoadMainScreen functionality
     private val _smsTransactions = MutableStateFlow<List<BankTransaction>>(emptyList())
@@ -54,54 +41,19 @@ class MainViewModel(
     private val _filteredSmsTransactions = MutableStateFlow<List<BankTransaction>>(emptyList())
     val filteredSmsTransactions: StateFlow<List<BankTransaction>> = _filteredSmsTransactions
 
-    private val _dateRangeMode = MutableStateFlow(DateRangeMode.DAILY)
-    val dateRangeMode: StateFlow<DateRangeMode> = _dateRangeMode
-
-    private val _prevRange = MutableStateFlow<Pair<Long, Long>?>(null)
-    val prevRange: StateFlow<Pair<Long, Long>?> = _prevRange
-
     // Real-time message detection state
     private val _newMessageDetected = MutableStateFlow<BankTransaction?>(null)
     val newMessageDetected: StateFlow<BankTransaction?> = _newMessageDetected
-    
 
-
-    // Constants for SharedPreferences
-    companion object {
-        const val CORE_NAME = "samstudio_prefs"
-        const val RANGE_START = "date_range_start"
-        const val RANGE_END = "date_range_end"
-        const val RANGE_MODE = "date_range_mode"
-    }
-
-    fun setDateRange(start: Long, end: Long) {
-        val calStart = Calendar.getInstance().apply { timeInMillis = start }
-        val calEnd = Calendar.getInstance().apply { timeInMillis = end }
-        val isSameDay = calStart.get(Calendar.YEAR) == calEnd.get(Calendar.YEAR) &&
-                calStart.get(Calendar.DAY_OF_YEAR) == calEnd.get(Calendar.DAY_OF_YEAR)
-        if (isSameDay) {
-            // Set start to 00:00:00.000
-            calStart.set(Calendar.HOUR_OF_DAY, 0)
-            calStart.set(Calendar.MINUTE, 0)
-            calStart.set(Calendar.SECOND, 0)
-            calStart.set(Calendar.MILLISECOND, 0)
-            // Set end to 23:59:59.999
-            calEnd.set(Calendar.HOUR_OF_DAY, 23)
-            calEnd.set(Calendar.MINUTE, 59)
-            calEnd.set(Calendar.SECOND, 59)
-            calEnd.set(Calendar.MILLISECOND, 999)
-        }
-        _dateRange.value = calStart.timeInMillis to calEnd.timeInMillis
-        loadTransactionsByDateRange(calStart.timeInMillis, calEnd.timeInMillis)
+    // Override abstract methods from BaseViewModel
+    override fun onDateRangeChanged(start: Long, end: Long) {
+        loadTransactionsByDateRange(start, end)
         updateFilteredSmsTransactions()
     }
 
-    private fun getDefaultMonthRange(): Pair<Long, Long> {
-        val cal = Calendar.getInstance()
-        val end = cal.timeInMillis
-        cal.set(Calendar.DAY_OF_MONTH, 1)
-        val start = cal.timeInMillis
-        return start to end
+    override fun onInitialPreferencesLoaded() {
+        loadSmsTransactions()
+        updateFilteredSmsTransactions()
     }
 
     fun loadAllTransactions() {
@@ -171,32 +123,32 @@ class MainViewModel(
         viewModelScope.launch {
             try {
                 _isLoading.value = true
-                
+
                 // Use IO dispatcher for database operations
                 val existingTransaction = withContext(Dispatchers.IO) {
                     findExactTransaction(transaction.messageTime)
                 }
-                
+
                 if (existingTransaction != null) {
 
                     // Update the transaction in database using IO dispatcher
                     withContext(Dispatchers.IO) {
                         updateTransactionUseCase(transaction)
                     }
-                    
+
                 } else {
                     // If no transaction found with this messageTime, insert as new transaction
                     withContext(Dispatchers.IO) {
                         insertTransaction(transaction)
                     }
                 }
-                
+
                 // Reload transactions to reflect changes
                 loadAllTransactions()
                 loadSmsTransactions()
                 updateFilteredSmsTransactions()
                 Log.d("MainViewModel", "findAndOverwriteTransaction: Data reload completed")
-                
+
             } catch (e: Exception) {
                 Log.e("MainViewModel", "findAndOverwriteTransaction: Error finding/overwriting transaction", e)
                 Log.e("MainViewModel", "findAndOverwriteTransaction: Error message: ${e.message}")
@@ -214,7 +166,7 @@ class MainViewModel(
      */
     fun processBankTransaction(transaction: BankTransaction) {
         Log.d("MainViewModel", "processBankTransaction: Processing transaction - Amount: ${transaction.amount}, Bank: ${transaction.bankName}")
-        
+
         // Use the findAndOverwriteTransaction function with proper coroutines and threading
         findAndOverwriteTransaction(transaction)
     }
@@ -237,11 +189,11 @@ class MainViewModel(
                         count = null
                     )
                 }
-                
+
                 // Efficiently check for existing messageTimes in bulk
                 val messageTimesToCheck = newTxns.map { it.messageTime }
                 val existingMessageTimes = withContext(Dispatchers.IO) {
-                    getExistingMessageTimes(messageTimesToCheck) 
+                    getExistingMessageTimes(messageTimesToCheck)
                 }
 
                 // Filter out transactions that already exist
@@ -327,63 +279,6 @@ class MainViewModel(
         _filteredSmsTransactions.value = filtered
     }
 
-    fun loadInitialPreferences(prefs: SharedPreferences) {
-        val savedStart = prefs.getLong(RANGE_START, -1L)
-        val savedEnd = prefs.getLong(RANGE_END, -1L)
-        val savedMode = prefs.getString(RANGE_MODE, null)
-        
-        if (savedStart > 0 && savedEnd > 0 && savedMode != null) {
-            _dateRangeMode.value = DateRangeMode.valueOf(savedMode)
-            _dateRange.value = savedStart to savedEnd
-        }
-        
-        loadSmsTransactions()
-        updateFilteredSmsTransactions()
-    }
-
-    fun shiftDateRange(forward: Boolean) {
-        _prevRange.value = _dateRange.value
-        val newRange = calculateShiftedRange(_dateRange.value, _dateRangeMode.value, forward)
-        _dateRange.value = newRange
-        updateFilteredSmsTransactions()
-    }
-
-    fun changeDateRangeMode(newMode: DateRangeMode) {
-        _dateRangeMode.value = newMode
-        val cal = Calendar.getInstance()
-        val end = cal.timeInMillis
-        cal.add(Calendar.DAY_OF_YEAR, -(newMode.days - 1))
-        val start = cal.timeInMillis
-        _dateRange.value = start to end
-        updateFilteredSmsTransactions()
-    }
-
-    fun setDateRangeFromPicker(start: Long, end: Long) {
-        _prevRange.value = _dateRange.value
-        
-        // Patch: expand single-day range to full day
-        val calStart = Calendar.getInstance().apply { timeInMillis = start }
-        val calEnd = Calendar.getInstance().apply { timeInMillis = end }
-        val isSameDay = calStart.get(Calendar.YEAR) == calEnd.get(Calendar.YEAR) &&
-                calStart.get(Calendar.DAY_OF_YEAR) == calEnd.get(Calendar.DAY_OF_YEAR)
-        
-        if (isSameDay) {
-            calStart.set(Calendar.HOUR_OF_DAY, 0)
-            calStart.set(Calendar.MINUTE, 0)
-            calStart.set(Calendar.SECOND, 0)
-            calStart.set(Calendar.MILLISECOND, 0)
-            calEnd.set(Calendar.HOUR_OF_DAY, 23)
-            calEnd.set(Calendar.MINUTE, 59)
-            calEnd.set(Calendar.SECOND, 59)
-            calEnd.set(Calendar.MILLISECOND, 999)
-        }
-        
-        val newStart = calStart.timeInMillis
-        val newEnd = calEnd.timeInMillis
-        _dateRange.value = newStart to newEnd
-        updateFilteredSmsTransactions()
-    }
-
     fun addDummyTransactions() {
         viewModelScope.launch {
             val dummyList = listOf(
@@ -424,50 +319,7 @@ class MainViewModel(
             updateFilteredSmsTransactions()
         }
     }
-    
 
-    
-    /**
-     * Test SMS receiver functionality
-     */
-    /*
-    fun testSmsReceiver(context: Context) {
-        Log.d("MainViewModel", "Testing SMS receiver...")
-        
-        // Create a test SMS intent
-        val testIntent = Intent(android.provider.Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
-        testIntent.putExtra("pdus", arrayOf<Byte>())
-        
-        // Send broadcast to test receiver
-        context.sendBroadcast(testIntent)
-        Log.d("MainViewModel", "Test SMS broadcast sent")
-    }
-    */
-
-    private fun calculateShiftedRange(currentRange: Pair<Long, Long>, mode: DateRangeMode, forward: Boolean): Pair<Long, Long> {
-        val (start, end) = currentRange
-        val daysToShift = if (forward) mode.days else -mode.days
-        
-        val calStart = Calendar.getInstance().apply { timeInMillis = start }
-        val calEnd = Calendar.getInstance().apply { timeInMillis = end }
-        
-        calStart.add(Calendar.DAY_OF_YEAR, daysToShift)
-        calEnd.add(Calendar.DAY_OF_YEAR, daysToShift)
-        
-        return calStart.timeInMillis to calEnd.timeInMillis
-    }
-
-    fun getDateRangeForPreferences(): Triple<Long, Long, String> {
-        return Triple(_dateRange.value.first, _dateRange.value.second, _dateRangeMode.value.name)
-    }
-
-    init {
-        val (start, end) = _dateRange.value
-        loadTransactionsByDateRange(start, end)
-    }
-    
-
-    
     /**
      * Handle new SMS message using same parsing logic
      */
@@ -490,7 +342,7 @@ class MainViewModel(
             }
         }
     }
-    
+
     /**
      * Handle new SMS from MainActivity (called by ContentObserver)
      */
@@ -498,14 +350,14 @@ class MainViewModel(
         Log.d("MainViewModel", "handleNewSmsFromActivity called with: $messageBody")
         handleNewSms(messageBody, timestamp)
     }
-    
+
     /**
      * Dismiss the new message popup
      */
     fun dismissNewMessagePopup() {
         _newMessageDetected.value = null
     }
-    
+
     /**
      * Test method to manually trigger popup
      */
@@ -532,5 +384,10 @@ class MainViewModel(
                 Log.e("MainViewModel", "Error marking transaction as deleted", e)
             }
         }
+    }
+
+    init {
+        val (start, end) = _dateRange.value
+        loadTransactionsByDateRange(start, end)
     }
 }

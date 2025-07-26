@@ -7,12 +7,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.presentation.main.MainViewModel
-import com.ravi.samstudioapp.ui.components.GlassTransactionCard
+import com.ravi.samstudioapp.presentation.screens.expense.ExpenseViewModel
 import java.text.SimpleDateFormat
 import java.util.*
+import android.widget.Toast
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -20,7 +19,7 @@ fun TransactionList(
     smsTransactions: List<BankTransaction>,
     bankTransactions: List<BankTransaction>,
     onEdit: (BankTransaction) -> Unit,
-    viewModel: MainViewModel
+    viewModel: ExpenseViewModel
 ) {
     val context = LocalContext.current
     var editingTxn by remember { mutableStateOf<BankTransaction?>(null) }
@@ -76,7 +75,10 @@ fun TransactionList(
                             bankTxn = bankTxn,
                             dateTimeFormat = dateTimeFormat,
                             onEdit = { editingTxn = it },
-                            onDelete = { viewModel.markTransactionAsDeleted(txn.messageTime) }
+                            onDelete = { 
+                                viewModel.markTransactionAsDeleted(txn.messageTime)
+                                Toast.makeText(context, "Item deleted", Toast.LENGTH_SHORT).show()
+                            }
                         )
                     }
                 }

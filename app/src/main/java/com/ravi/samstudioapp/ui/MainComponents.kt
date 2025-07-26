@@ -1,15 +1,9 @@
 package com.ravi.samstudioapp.ui
 
-import android.Manifest
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,12 +14,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.ArrowBack
@@ -34,36 +24,23 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Message
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Fastfood
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocalCafe
 import androidx.compose.material.icons.filled.LocalDrink
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DateRangePicker
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,43 +51,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.core.content.edit
-import com.ravi.samstudioapp.ui.MPChartSpendBarGraph
-import com.ravi.samstudioapp.ui.MPChartCategoryBarChart
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.presentation.insights.InsightsActivity
-import com.ravi.samstudioapp.presentation.main.EditTransactionDialog
-import com.ravi.samstudioapp.presentation.main.MainViewModel
 import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
-import com.ravi.samstudioapp.ui.components.NewMessagePopup
-import com.ravi.samstudioapp.ui.components.TransactionList
-import com.ravi.samstudioapp.ui.components.GlassTransactionCard
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import androidx.compose.ui.graphics.Color as ComposeColor
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.RepeatMode
-import com.ravi.samstudioapp.utils.PermissionManager
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.material.icons.filled.Delete
 
 
 // Add DateRangeMode enum at the top level
@@ -285,7 +245,7 @@ fun CustomToolbarWithDateRange(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
+            .padding(horizontal = 4.dp, vertical = 2.dp)
     ) {
         // Toolbar Row
         NeumorphicBorderBox(
@@ -725,318 +685,7 @@ fun SpendBarGraph(
     )
 }
 
-//@Preview(showBackground = true)
-//@Composable
-//fun PreviewSpendBarGraph() {
-//    val now = System.currentTimeMillis()
-//    val dummyTransactions = listOf(
-//        BankTransaction(
-//            1,
-//            100.0,
-//            "HDFC",
-//            "Food",
-//            now - 6 * 24 * 60 * 60 * 1000,
-//            null,
-//            "Food",
-//            false
-//        ),
-//        BankTransaction(
-//            2,
-//            200.0,
-//            "ICICI",
-//            "Travel",
-//            now - 5 * 24 * 60 * 60 * 1000,
-//            null,
-//            "Travel",
-//            false
-//        ),
-//        BankTransaction(
-//            3,
-//            50.0,
-//            "SBI",
-//            "Cigarette",
-//            now - 4 * 24 * 60 * 60 * 1000,
-//            null,
-//            "Cigarette",
-//            false
-//        ),
-//        BankTransaction(
-//            4,
-//            80.0,
-//            "Axis",
-//            "Food",
-//            now - 3 * 24 * 60 * 60 * 1000,
-//            null,
-//            "Food",
-//            false
-//        ),
-//        BankTransaction(
-//            5,
-//            120.0,
-//            "Kotak",
-//            "Other",
-//            now - 2 * 24 * 60 * 60 * 1000,
-//            null,
-//            "Other",
-//            false
-//        ),
-//        BankTransaction(
-//            6,
-//            60.0,
-//            "HDFC",
-//            "Food",
-//            now - 1 * 24 * 60 * 60 * 1000,
-//            null,
-//            "Food",
-//            false
-//        ),
-//        BankTransaction(7, 90.0, "ICICI", "Travel", now, null, "Travel", false)
-//    )
-//    val dateRange = Pair(now - 6 * 24 * 60 * 60 * 1000, now)
-//    SamStudioAppTheme {
-//        SpendBarGraph(
-//            transactions = dummyTransactions,
-//            dateRange = dateRange,
-//            mode = DateRangeMode.WEEKLY,
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .padding(16.dp)
-//        )
-//    }
-//}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun LoadMainScreen(viewModel: MainViewModel) {
-    val context = LocalContext.current
-
-    // UI state only
-    var editingTransaction by remember { mutableStateOf<BankTransaction?>(null) }
-    var showDialog by remember { mutableStateOf(false) }
-    var selectedTabIndex by remember { mutableStateOf(0) }
-
-    // Get state from ViewModel
-    val isLoading by viewModel.isLoading.collectAsState()
-    val smsTransactions by viewModel.smsTransactions.collectAsState()
-    val filteredSmsTransactions by viewModel.filteredSmsTransactions.collectAsState()
-    val transactions by viewModel.transactions.collectAsState()
-    val currentRange by viewModel.dateRange.collectAsState()
-    val mode by viewModel.dateRangeMode.collectAsState()
-    val prevRange by viewModel.prevRange.collectAsState()
-    
-    // Real-time message detection state
-    val newMessageDetected by viewModel.newMessageDetected.collectAsState()
-
-    val prefs = context.getSharedPreferences(MainViewModel.CORE_NAME, Context.MODE_PRIVATE)
-    viewModel.loadInitialPreferences(prefs)
-
-    // Helper function to save preferences
-    fun savePreferences() {
-        val (start, end, modeName) = viewModel.getDateRangeForPreferences()
-        prefs.edit {
-            putLong(MainViewModel.RANGE_START, start)
-            putLong(MainViewModel.RANGE_END, end)
-            putString(MainViewModel.RANGE_MODE, modeName)
-        }
-    }
-
-    SamStudioAppTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(DarkGray)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .statusBarsPadding()
-                    //.background(MaterialTheme.colorScheme.background)
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-            ) {
-                ToolbarWithDateRange(
-                    currentRange = currentRange,
-                    mode = mode,
-                    prevRange = prevRange,
-                    prefs = prefs,
-                    onPrevClick = {
-                        viewModel.shiftDateRange(forward = false)
-                        savePreferences()
-                    },
-                    onNextClick = {
-                        viewModel.shiftDateRange(forward = true)
-                        savePreferences()
-                    },
-                    onModeChange = { newMode ->
-                        viewModel.changeDateRangeMode(newMode)
-                        savePreferences()
-                    },
-                    onDatePickerChange = { start, end ->
-                        viewModel.setDateRangeFromPicker(start, end)
-                        savePreferences()
-                    },
-                    onRefreshClick = {
-                        Log.d("SamStudio", "UI: Refresh button clicked, isLoading: $isLoading")
-                        Log.d("SamStudio", "UI: About to check SMS permission")
-                        if (!isLoading) {
-                            // Check cached permission state first
-                            if (PermissionManager.isSmsPermissionGranted()) {
-                                Log.d("SamStudio", "UI: Permission already granted, starting sync")
-                                viewModel.syncFromSms(context) { newTransactionCount ->
-                                    when (newTransactionCount) {
-                                        -1 -> Toast.makeText(context, "Sync failed", Toast.LENGTH_SHORT).show()
-                                        0 -> Toast.makeText(context, "No new transactions found", Toast.LENGTH_SHORT).show()
-                                        else -> Toast.makeText(context, "Sync completed: $newTransactionCount new transactions", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            } else {
-                                // Check actual permission status
-                                val permissionGranted = ContextCompat.checkSelfPermission(
-                                    context,
-                                    Manifest.permission.READ_SMS
-                                ) == PackageManager.PERMISSION_GRANTED
-
-                                Log.d("SamStudio", "UI: SMS permission granted: $permissionGranted")
-
-                                if (permissionGranted) {
-                                    Log.d("SamStudio", "UI: Permission granted, calling viewModel.syncFromSms")
-                                    viewModel.syncFromSms(context) { newTransactionCount ->
-                                        when (newTransactionCount) {
-                                            -1 -> Toast.makeText(context, "Sync failed", Toast.LENGTH_SHORT).show()
-                                            0 -> Toast.makeText(context, "No new transactions found", Toast.LENGTH_SHORT).show()
-                                            else -> Toast.makeText(context, "Sync completed: $newTransactionCount new transactions", Toast.LENGTH_SHORT).show()
-                                        }
-                                    }
-                                    Log.d("SamStudio", "UI: viewModel.syncFromSms called successfully")
-                                } else {
-                                    Log.d("SamStudio", "UI: Permission not granted, requesting SMS permission...")
-                                    PermissionManager.requestSmsPermission()
-                                    Log.d("SamStudio", "UI: Permission request launched")
-                                }
-                            }
-                        } else {
-                            Log.d("SamStudio", "UI: Already loading, ignoring refresh click")
-                        }
-                    },
-                    onInsightsClick = {
-                        // Navigate to insights activity
-                        val intent = Intent(context, InsightsActivity::class.java)
-                        context.startActivity(intent)
-                    },
-                    isLoading = isLoading,
-                    smsTransactions = filteredSmsTransactions,
-                    bankTransactions = transactions,
-                    onEdit = { editingTransaction = it; showDialog = true }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Tabs
-                MainTabs(
-                    selectedTabIndex = selectedTabIndex,
-                    onTabSelected = { selectedTabIndex = it }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Tab Content
-                when (selectedTabIndex) {
-                    0 -> {
-                        // Transactions Tab
-                        if (isLoading) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    val rotationAnimation by rememberInfiniteTransition().animateFloat(
-                                        initialValue = 0f,
-                                        targetValue = 360f,
-                                        animationSpec = infiniteRepeatable(
-                                            animation = tween(1000, easing = LinearEasing),
-                                            repeatMode = RepeatMode.Restart
-                                        )
-                                    )
-                                    Icon(
-                                        Icons.Filled.Refresh,
-                                        contentDescription = "Syncing...",
-                                        tint = LightGray,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .graphicsLayer(rotationZ = rotationAnimation)
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        text = "Syncing SMS transactions...",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = LightGray,
-                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                    )
-                                }
-                            }
-                        } else {
-                            TransactionList(
-                                smsTransactions = filteredSmsTransactions,
-                                bankTransactions = transactions,
-                                onEdit = { transaction ->
-                                    viewModel.findAndOverwriteTransaction(transaction)
-                                },
-                                viewModel = viewModel
-                            )
-                        }
-                    }
-                    1 -> {
-                        // Insights Tab with detailed charts
-                        DetailedInsightsTab(
-                            transactions = filteredSmsTransactions,
-                            dateRange = currentRange,
-                            mode = mode,
-                            modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-            }
-            
-
-
-            if (showDialog) {
-                EditTransactionDialog(
-                    transaction = editingTransaction,
-                    onDismiss = { showDialog = false },
-                    onSave = {
-                      //  viewModel.saveTransaction(it)
-                        val updatedTxn = editingTransaction?.copy(
-                            amount = it.amount,
-                            tags = it.tags,
-                            bankName = it.bankName,
-                            category = it.category,
-                            deleted = false // Always restore on edit
-                        )
-                        viewModel.findAndOverwriteTransaction(updatedTxn ?: it)
-                        showDialog = false
-                    }
-                )
-            }
-            
-            // New message popup
-            newMessageDetected?.let { transaction ->
-                NewMessagePopup(
-                    transaction = transaction,
-                    onDismiss = { viewModel.dismissNewMessagePopup() },
-                    onSave = { bankTransaction ->
-                        viewModel.findAndOverwriteTransaction(bankTransaction)
-                        viewModel.dismissNewMessagePopup()
-                    }
-                )
-            }
-            
-
-        }
-    }
-}
 
 // TransactionList moved to components/TransactionList.kt
 

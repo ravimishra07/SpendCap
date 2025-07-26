@@ -10,6 +10,7 @@ import com.ravi.samstudioapp.domain.usecase.FindExactBankTransactionUseCase
 import com.ravi.samstudioapp.domain.usecase.GetExistingMessageTimesUseCase
 import com.ravi.samstudioapp.domain.usecase.InsertIfNotVerifiedUseCase
 import com.ravi.samstudioapp.domain.usecase.MarkBankTransactionAsDeletedUseCase
+import com.ravi.samstudioapp.presentation.screens.expense.ExpenseViewModel
 
 class MainViewModelFactory(
     private val getAllTransactions: GetAllBankTransactionsUseCase,
@@ -23,9 +24,9 @@ class MainViewModelFactory(
 ) : ViewModelProvider.Factory {
     
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+        if (modelClass.isAssignableFrom(ExpenseViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return MainViewModel(
+            return ExpenseViewModel(
                 getAllTransactions,
                 getByDateRange,
                 insertTransaction,

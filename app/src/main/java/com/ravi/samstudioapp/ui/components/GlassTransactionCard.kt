@@ -29,6 +29,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.ui.tooling.preview.Preview
 import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
+import androidx.compose.foundation.clickable
 const val SamDateFormat = "MM/dd/yy, h:mm a"
 @Composable
 fun GlassTransactionCard(
@@ -164,7 +165,7 @@ fun GlassTransactionCard(
                     color = Color.White
                 )
 
-                // Action Icons (not buttons)
+                // Action Icons (now clickable)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
@@ -173,6 +174,7 @@ fun GlassTransactionCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
+                            .clickable { bankTxn?.let { onEdit(it) } }
                             .background(
                                 color = Color(0xFF444950),
                                 shape = CircleShape
@@ -188,7 +190,7 @@ fun GlassTransactionCard(
                             imageVector = Icons.Filled.Edit,
                             contentDescription = "Edit",
                             tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                     // Delete Icon
@@ -196,6 +198,7 @@ fun GlassTransactionCard(
                         modifier = Modifier
                             .size(36.dp)
                             .clip(CircleShape)
+                            .clickable { onDelete() }
                             .background(
                                 color = Color(0xFF444950),
                                 shape = CircleShape
@@ -211,7 +214,7 @@ fun GlassTransactionCard(
                             imageVector = Icons.Filled.Delete,
                             contentDescription = "Delete",
                             tint = Color.White,
-                            modifier = Modifier.size(14.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }

@@ -12,13 +12,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ravi.samstudioapp.domain.model.BankTransaction
-import com.ravi.samstudioapp.presentation.main.MainViewModel
+import com.ravi.samstudioapp.presentation.screens.expense.ExpenseViewModel
 import com.ravi.samstudioapp.ui.components.TransactionList
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabbedMainScreen(
-    viewModel: MainViewModel,
+    viewModel: ExpenseViewModel,
     filteredSmsTransactions: List<BankTransaction>,
     transactions: List<BankTransaction>,
     currentRange: Pair<Long, Long>,

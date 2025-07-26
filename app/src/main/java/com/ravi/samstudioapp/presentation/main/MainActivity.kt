@@ -13,27 +13,40 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.*
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.ravi.samstudioapp.di.VmInjector
 import com.ravi.samstudioapp.domain.model.BankTransaction
+import com.ravi.samstudioapp.presentation.screens.daily.DailyScreen
+import com.ravi.samstudioapp.presentation.screens.expense.ExpenseScreen
+import com.ravi.samstudioapp.presentation.screens.expense.ExpenseViewModel
 import com.ravi.samstudioapp.ui.AppPermissionHelper
-import com.ravi.samstudioapp.ui.LoadMainScreen
-import com.ravi.samstudioapp.utils.PermissionManager
 import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
+import com.ravi.samstudioapp.utils.PermissionManager
 
 class MainActivity : ComponentActivity() {
     private lateinit var prefs: SharedPreferences
-    private lateinit var viewModel: MainViewModel
+    private lateinit var viewModel: ExpenseViewModel
     private lateinit var permissionHelper: AppPermissionHelper
     private var lastAutoSyncTime: Long = 0
     private val AUTO_SYNC_COOLDOWN = 30000L // 30 seconds cooldown between auto-syncs
@@ -223,7 +236,7 @@ sealed class BottomNavScreen(val route: String, val label: String, val icon: Ima
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainBottomNavTabs(viewModel: MainViewModel) {
+fun MainBottomNavTabs(viewModel: ExpenseViewModel) {
     val navController = rememberNavController()
     val items = listOf(
         BottomNavScreen.Daily,
@@ -260,17 +273,10 @@ fun MainBottomNavTabs(viewModel: MainViewModel) {
             startDestination = BottomNavScreen.Daily.route,
             Modifier.padding(innerPadding)
         ) {
-            composable(BottomNavScreen.Daily.route) { DailyTabContent() }
-            composable(BottomNavScreen.Expense.route) { LoadMainScreen(viewModel) }
+            composable(BottomNavScreen.Daily.route) { DailyScreen() }
+            composable(BottomNavScreen.Expense.route) { ExpenseScreen(viewModel) }
             composable(BottomNavScreen.Settings.route) { SettingsTabContent() }
         }
-    }
-}
-
-@Composable
-fun DailyTabContent() {
-    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-        Text("Daily Tab Content")
     }
 }
 
