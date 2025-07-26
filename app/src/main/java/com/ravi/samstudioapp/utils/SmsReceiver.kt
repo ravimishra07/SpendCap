@@ -7,7 +7,7 @@ import android.content.Intent
 import android.provider.Telephony
 import android.telephony.SmsMessage
 import android.util.Log
-import com.ravi.samstudioapp.MainActivity
+import com.ravi.samstudioapp.presentation.main.MainActivity
 import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.utils.MessageParser
 
