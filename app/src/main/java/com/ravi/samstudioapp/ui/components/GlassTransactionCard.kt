@@ -27,7 +27,9 @@ import com.ravi.samstudioapp.domain.model.BankTransaction
 import com.ravi.samstudioapp.ui.categoryDefs
 import java.text.SimpleDateFormat
 import java.util.*
-
+import androidx.compose.ui.tooling.preview.Preview
+import com.ravi.samstudioapp.ui.theme.SamStudioAppTheme
+const val SamDateFormat = "MM/dd/yy, h:mm a"
 @Composable
 fun GlassTransactionCard(
     txn: BankTransaction,
@@ -50,32 +52,17 @@ fun GlassTransactionCard(
             .fillMaxWidth()
             .padding(vertical = 6.dp, horizontal = 12.dp)
             .shadow(
-                elevation = 12.dp,
-                shape = RoundedCornerShape(20.dp),
-                ambientColor = Color.Black.copy(alpha = 0.2f),
-                spotColor = Color.Black.copy(alpha = 0.3f)
+                elevation = 4.dp,
+                shape = RoundedCornerShape(16.dp)
             )
-            .clip(RoundedCornerShape(20.dp))
-            .background(
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0x30FFFFFF), // More visible glass effect
-                        Color(0x15FFFFFF)  // Subtle bottom
-                    )
-                )
-            )
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFF23272A)) // Simple solid background
             .border(
-                width = 1.5.dp,
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        Color(0x50FFFFFF), // Brighter top border
-                        Color(0x20FFFFFF), // Subtle middle
-                        Color(0x10FFFFFF)  // Very subtle bottom
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
+                width = 1.dp,
+                color = Color(0xFF444950),
+                shape = RoundedCornerShape(16.dp)
             )
-            .padding(20.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp)
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -86,71 +73,43 @@ fun GlassTransactionCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+
                 // Category Icon and Title Row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Circular Category Icon
+                    // Subtle gray circular background for icon
                     Box(
                         modifier = Modifier
-                            .size(50.dp)
+                            .size(40.dp)
                             .clip(CircleShape)
-                            .background(
-                                color = catDef.color.copy(alpha = 0.8f),
-                                shape = CircleShape
-                            ),
+                            .background(Color(0x33FFFFFF)), // semi-transparent white/gray
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
                             imageVector = catDef.icon,
                             contentDescription = catDef.name,
-                            tint = Color.White,
-                            modifier = Modifier.size(28.dp)
+                            tint = Color(0xFFBABED2), // muted gray
+                            modifier = Modifier.size(24.dp)
                         )
                     }
-                    
                     // Category Title
-                    Text(
-                        text = catDef.name,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+                    Column {
+                        Text(
+                            text = catDef.name,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = txn.bankName,
+                            fontSize = 15.sp,
+                            color = Color(0xFFBABED2)
+                        )
+                    }
                 }
-                
-                // Bank Information Row
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Business,
-                        contentDescription = "Bank",
-                        tint = Color(0xFFB0B0B0),
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Text(
-                        text = txn.bankName,
-                        fontSize = 12.sp,
-                        color = Color(0xFFB0B0B0)
-                    )
-                }
-            }
-            
-            // Right Section - Amount, Date, and Actions
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                // Amount
-                Text(
-                    text = "₹${txn.amount}",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                
+
                 // Date and Time
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -159,16 +118,52 @@ fun GlassTransactionCard(
                     Icon(
                         imageVector = Icons.Filled.CalendarToday,
                         contentDescription = "Date",
-                        tint = Color(0xFFB0B0B0),
+                        tint = Color(0xFF00BCD4),
                         modifier = Modifier.size(12.dp)
                     )
                     Text(
                         text = dateTime,
                         fontSize = 11.sp,
-                        color = Color(0xFFB0B0B0)
+                        color = Color(0xFFBABED2)
                     )
+                    Text(
+                        text = "I",
+                        fontSize = 20.sp,
+                        color = Color(0xFF4489C0)
+                    )
+                    // Bank Information Row
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Business,
+                            contentDescription = "Bank",
+                            tint = Color(0xFF00BCD4),
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = txn.bankName,
+                            fontSize = 12.sp,
+                            color = Color(0xFFB0B0B0)
+                        )
+                    }
                 }
-                
+            }
+
+            // Right Section - Amount, Date, and Actions
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Amount
+                Text(
+                    text = "₹${txn.amount}",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+
                 // Action Buttons
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -177,32 +172,16 @@ fun GlassTransactionCard(
                     IconButton(
                         onClick = { bankTxn?.let { onEdit(it) } },
                         modifier = Modifier
-                            .size(36.dp)
+                            .size(24.dp)
                             .clip(CircleShape)
                             .background(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0x40FFFFFF),
-                                        Color(0x20FFFFFF)
-                                    )
-                                ),
+                                color = Color(0xFF444950),
                                 shape = CircleShape
                             )
                             .border(
                                 width = 1.dp,
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0x60FFFFFF),
-                                        Color(0x30FFFFFF)
-                                    )
-                                ),
+                                color = Color(0xFF5A5F66),
                                 shape = CircleShape
-                            )
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = CircleShape,
-                                ambientColor = Color.Black.copy(alpha = 0.1f),
-                                spotColor = Color.Black.copy(alpha = 0.2f)
                             )
                     ) {
                         Icon(
@@ -212,7 +191,6 @@ fun GlassTransactionCard(
                             modifier = Modifier.size(18.dp)
                         )
                     }
-                    
                     // Delete Button
                     IconButton(
                         onClick = onDelete,
@@ -220,29 +198,13 @@ fun GlassTransactionCard(
                             .size(36.dp)
                             .clip(CircleShape)
                             .background(
-                                brush = Brush.radialGradient(
-                                    colors = listOf(
-                                        Color(0x40FFFFFF),
-                                        Color(0x20FFFFFF)
-                                    )
-                                ),
+                                color = Color(0xFF444950),
                                 shape = CircleShape
                             )
                             .border(
                                 width = 1.dp,
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0x60FFFFFF),
-                                        Color(0x30FFFFFF)
-                                    )
-                                ),
+                                color = Color(0xFF5A5F66),
                                 shape = CircleShape
-                            )
-                            .shadow(
-                                elevation = 4.dp,
-                                shape = CircleShape,
-                                ambientColor = Color.Black.copy(alpha = 0.1f),
-                                spotColor = Color.Black.copy(alpha = 0.2f)
                             )
                     ) {
                         Icon(
@@ -255,5 +217,82 @@ fun GlassTransactionCard(
                 }
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GlassTransactionCardPreview_Food() {
+    SamStudioAppTheme {
+        GlassTransactionCard(
+            txn = BankTransaction(
+                messageTime = 1718000000000,
+                amount = 250.0,
+                bankName = "HDFC Bank",
+                tags = "food, lunch",
+                category = "Food",
+                verified = true
+            ),
+            bankTxn = BankTransaction(
+                messageTime = 1718000000000,
+                amount = 250.0,
+                bankName = "HDFC Bank",
+                tags = "food, lunch",
+                category = "Food",
+                verified = true
+            ),
+            dateTimeFormat = SimpleDateFormat(SamDateFormat, Locale.getDefault()),
+            onEdit = {},
+            onDelete = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GlassTransactionCardPreview_Transport() {
+    SamStudioAppTheme {
+        GlassTransactionCard(
+            txn = BankTransaction(
+                messageTime = 1718100000000,
+                amount = 120.0,
+                bankName = "SBI",
+                tags = "travel, cab",
+                category = "Transport",
+                verified = false
+            ),
+            bankTxn = BankTransaction(
+                messageTime = 1718100000000,
+                amount = 120.0,
+                bankName = "SBI",
+                tags = "travel, cab",
+                category = "Transport",
+                verified = false
+            ),
+            dateTimeFormat = SimpleDateFormat(SamDateFormat, Locale.getDefault()),
+            onEdit = {},
+            onDelete = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun GlassTransactionCardPreview_Other() {
+    SamStudioAppTheme {
+        GlassTransactionCard(
+            txn = BankTransaction(
+                messageTime = 1718200000000,
+                amount = 9999.0,
+                bankName = "ICICI",
+                tags = "misc",
+                category = "Other",
+                verified = false
+            ),
+            bankTxn = null,
+            dateTimeFormat = SimpleDateFormat(SamDateFormat, Locale.getDefault()),
+            onEdit = {},
+            onDelete = {}
+        )
     }
 } 

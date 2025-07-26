@@ -41,7 +41,7 @@ fun TransactionList(
 
     // Memoize expensive operations
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    val dateTimeFormat = remember { SimpleDateFormat("MMM dd, yyyy, hh:mm a", Locale.getDefault()) }
+    val dateTimeFormat = remember { SimpleDateFormat("HH:mm, dd/MMM/yy", Locale.getDefault()) }
     
     val (filteredTxns, selectedCategory, onCategorySelected) = useTransactionFilter(smsTransactions)
     val grouped = remember(filteredTxns, dateFormat) {
